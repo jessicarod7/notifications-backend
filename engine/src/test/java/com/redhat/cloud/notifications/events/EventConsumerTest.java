@@ -3,6 +3,7 @@ package com.redhat.cloud.notifications.events;
 import com.redhat.cloud.notifications.EventPayloadTestHelper;
 import com.redhat.cloud.notifications.MicrometerAssertionHelper;
 import com.redhat.cloud.notifications.TestLifecycleManager;
+import com.redhat.cloud.notifications.config.EngineConfig;
 import com.redhat.cloud.notifications.db.repositories.EventRepository;
 import com.redhat.cloud.notifications.db.repositories.EventTypeRepository;
 import com.redhat.cloud.notifications.ingress.Action;
@@ -91,6 +92,9 @@ public class EventConsumerTest {
 
     @Inject
     EntityManager entityManager;
+
+    @InjectSpy
+    EngineConfig config;
 
     @BeforeEach
     void beforeEach() {
@@ -254,26 +258,13 @@ public class EventConsumerTest {
         String payload = serializeAction(action);
         UUID messageId = UUID.randomUUID();
         Message<String> message = buildMessageWithId(messageId.toString().getBytes(UTF_8), payload);
-        inMemoryConnector.source(INGRESS_CHANNEL).send(message);
-        inMemoryConnector.source(INGRESS_CHANNEL).send(message);
 
-        micrometerAssertionHelper.awaitAndAssertTimerIncrement(CONSUMED_TIMER_NAME, 2);
-        assertEquals(2L, registry.timer(CONSUMED_TIMER_NAME,
-                TAG_KEY_BUNDLE, action.getBundle(),
-                TAG_KEY_APPLICATION, action.getApplication(),
-                TAG_KEY_EVENT_TYPE_FQN, ""
-        ).count());
-        micrometerAssertionHelper.assertCounterIncrement(MESSAGE_ID_VALID_COUNTER_NAME, 2);
-        micrometerAssertionHelper.assertCounterIncrement(DUPLICATE_COUNTER_NAME, 1);
-        assertNoCounterIncrement(
-                REJECTED_COUNTER_NAME,
-                PROCESSING_ERROR_COUNTER_NAME,
-                PROCESSING_EXCEPTION_COUNTER_NAME,
-                MESSAGE_ID_INVALID_COUNTER_NAME,
-                MESSAGE_ID_MISSING_COUNTER_NAME
-        );
-        verifyExactlyOneProcessing(eventType, payload, action, false);
-        verify(kafkaMessageDeduplicator, times(2)).isNew(messageId);
+        // Run test with Postgres DB
+        internalTestDuplicatePayload(eventType, action, payload, messageId, message);
+
+        // Rerun test with remote cache
+        when(config.isRemoteCachingKafkaMessageDeduplicatorEnabled()).thenReturn(Boolean.TRUE);
+        internalTestDuplicatePayload(eventType, action, payload, messageId, message);
     }
 
     @Test
@@ -328,6 +319,29 @@ public class EventConsumerTest {
         );
         verifyExactlyOneProcessing(eventType, payload, action, false);
         verify(kafkaMessageDeduplicator, times(1)).isNew(null);
+    }
+
+    private void internalTestDuplicatePayload(EventType eventType, Action action, String payload, UUID messageId, Message<String> message) {
+        inMemoryConnector.source(INGRESS_CHANNEL).send(message);
+        inMemoryConnector.source(INGRESS_CHANNEL).send(message);
+
+        micrometerAssertionHelper.awaitAndAssertTimerIncrement(CONSUMED_TIMER_NAME, 2);
+        assertEquals(2L, registry.timer(CONSUMED_TIMER_NAME,
+                TAG_KEY_BUNDLE, action.getBundle(),
+                TAG_KEY_APPLICATION, action.getApplication(),
+                TAG_KEY_EVENT_TYPE_FQN, ""
+        ).count());
+        micrometerAssertionHelper.assertCounterIncrement(MESSAGE_ID_VALID_COUNTER_NAME, 2);
+        micrometerAssertionHelper.assertCounterIncrement(DUPLICATE_COUNTER_NAME, 1);
+        assertNoCounterIncrement(
+                REJECTED_COUNTER_NAME,
+                PROCESSING_ERROR_COUNTER_NAME,
+                PROCESSING_EXCEPTION_COUNTER_NAME,
+                MESSAGE_ID_INVALID_COUNTER_NAME,
+                MESSAGE_ID_MISSING_COUNTER_NAME
+        );
+        verifyExactlyOneProcessing(eventType, payload, action, false);
+        verify(kafkaMessageDeduplicator, times(2)).isNew(messageId);
     }
 
     private EventType mockGetEventTypeAndCreateEvent() {
