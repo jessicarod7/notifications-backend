@@ -54,6 +54,7 @@ public class EngineConfig {
     private String drawerToggle;
     private String kafkaConsumedTotalCheckerToggle;
     private String fetchAggregationBasedOnEvents;
+    private String remoteCachingKafkaMessageDeduplicatorToggle;
     private String toggleKafkaOutgoingHighVolumeTopic;
     private String toggleDirectEndpointToEventTypeDryRunEnabled;
     private String toggleUseDirectEndpointToEventTypeEnabled;
@@ -157,6 +158,7 @@ public class EngineConfig {
         drawerToggle = toggleRegistry.register("drawer", true);
         kafkaConsumedTotalCheckerToggle = toggleRegistry.register("kafka-consumed-total-checker", true);
         fetchAggregationBasedOnEvents = toggleRegistry.register("fetch-aggregation-based-on-events", true);
+        remoteCachingKafkaMessageDeduplicatorToggle = toggleRegistry.register("remote-caching-kafka-message-deduplicator", true);
         toggleKafkaOutgoingHighVolumeTopic = toggleRegistry.register("kafka-outgoing-high-volume-topic", true);
         toggleDirectEndpointToEventTypeDryRunEnabled = toggleRegistry.register("endpoint-to-event-type-dry-run", true);
         toggleUseDirectEndpointToEventTypeEnabled = toggleRegistry.register("use-endpoint-to-event-type", true);
@@ -187,6 +189,7 @@ public class EngineConfig {
         config.put(NOTIFICATIONS_USE_OCM_REFACTORED_TEMPLATES, isUseOCMRefactoredTemplates());
         config.put(toggleDirectEndpointToEventTypeDryRunEnabled, isDirectEndpointToEventTypeDryRunEnabled());
         config.put(toggleUseDirectEndpointToEventTypeEnabled, isUseDirectEndpointToEventTypeEnabled());
+        config.put(remoteCachingKafkaMessageDeduplicatorToggle, isRemoteCachingKafkaMessageDeduplicatorEnabled());
 
         Log.info("=== Startup configuration ===");
         config.forEach((key, value) -> {
@@ -322,5 +325,13 @@ public class EngineConfig {
 
     public boolean isUseOCMRefactoredTemplates() {
         return useOCMRefactoredTemplates;
+    }
+
+    public boolean isRemoteCachingKafkaMessageDeduplicatorEnabled() {
+        if (unleashEnabled) {
+            return this.unleash.isEnabled(this.remoteCachingKafkaMessageDeduplicatorToggle, false);
+        } else {
+            return false;
+        }
     }
 }
