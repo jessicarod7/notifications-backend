@@ -68,7 +68,7 @@
             {
               "type": "link",
               "text": "{data.source.application.display_name}",
-              "url": "https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=teams",
+              "url": "https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=slack",
               "style": {
                 "bold": true
               }
