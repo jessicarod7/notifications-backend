@@ -1,2 +1,79 @@
-{#include ms_teams/Common/commonMsAdaptiveCard.json}
-{#content-body}{data.events.size()} event{#if data.events.size() > 1}s{/if} triggered from {data.source.application.display_name} - {data.source.bundle.display_name}. [Open {data.source.application.display_name}](https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=teams){/content-body}
+{#include ms_teams/Common/commonMsAdaptiveCardHighLevelStructure.json}
+{#content-body}
+{
+  "type": "TextBlock",
+  "text": "Triggered events - {data.source.application.display_name} - {data.source.bundle.display_name}",
+  "wrap": true,
+  "style": "heading"
+},
+{
+  "type": "TextBlock",
+  "text": "{data.events.size()} event{#if data.events.size() == 1} has{#else}s have{/if} been triggered by cluster {data.events[0].payload.global_vars.cluster_display_name}.",
+  "wrap": true
+},
+{#if data.events.size() > 3}
+{
+  "type": "TextBlock",
+  "text": "The first 3 events:"
+},
+{/if}
+{
+  "type": "Table",
+  "firstRowAsHeader": true,
+  "rows": [
+    {
+      "type": "TableRow",
+      "cells": [
+        {
+          "type": "TableCell",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "Severity"
+            },
+            {
+              "type": "TextBlock",
+              "text": "Summary"
+            }
+          ]
+        }
+      ]
+    },
+    {#for event in data.events}{#if event_index < 3}
+    {
+      "type": "TableRow",
+      "cells": [
+        {
+          "type": "TableCell",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "event.payload.global_vars.severity",
+              {#when event.payload.global_vars.severity.toLowerCase}
+              {#is 'critical'}
+              "color": "attention"
+              {#is in 'major' 'warning'}
+              "color": "warning"
+              {/when}
+            }
+          ]
+        },
+        {
+          "type": "TableCell",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "{event.payload.subject}"
+            }
+          ]
+        }
+      ]
+    }
+    {/if}{/for}
+  ]
+},
+{
+  "type": "TextBlock",
+  "text": "View event details in [{data.source.application.display_name}](https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=teams)."
+}
+{/content-body}
