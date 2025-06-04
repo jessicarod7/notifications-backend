@@ -1,0 +1,52 @@
+{
+  "cardsV2": [
+    {
+      "cardId": "ocmDefaultCard",
+      "card": {
+        "header": {
+          "title": "{data.source.application.display_name} - {data.source.bundle.display_name}",
+          "subtitle": "Triggered events"
+        },
+        "sections": [
+          {
+            "collapsible": false,
+            "widgets":[
+              {
+                "textParagraph": {
+                  "text": "{data.events.size()} event{#if data.events.size() == 1} has{#else}s have{/if} been triggered by cluster {data.events[0].payload.global_vars.cluster_display_name}{#if data.events.size() > 3}.<br>The first 3 events{/if}:"
+                }
+              },
+              {#for event in data.events}{#if event_index < 3}
+              {
+                "textParagraph": {
+                  "text": "- <b>[{event.payload.global_vars.severity}]</b> {event.payload.subject}\n"
+                }
+              },
+              {/if}{/for}
+              {
+                "textParagraph": {
+                  "text": "View event details in {data.source.application.display_name}."
+                }
+              },
+              {
+                "buttonList": {
+                  "buttons": [
+                    {
+                      "text": "Open {data.source.application.display_name}",
+                      "altText": "Opens a new tab to {data.source.application.display_name} at https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=google_chat",
+                      "onClick": {
+                        "openLink": {
+                          "url": "https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=google_chat"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
