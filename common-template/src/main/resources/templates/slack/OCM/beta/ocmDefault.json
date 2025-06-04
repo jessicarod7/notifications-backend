@@ -1,0 +1,85 @@
+{
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Triggered events - {data.source.application.display_name} - {data.source.bundle.display_name}"
+      }
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "{data.events.size()} event{#if data.events.size() == 1} has{#else}s have{/if} been triggered by cluster {data.events[0].payload.global_vars.cluster_display_name}{#if data.events.size() > 3}.{#else}:{/if}"
+            }
+          ]
+        }
+        {#if data.events.size() > 3}
+        ,{
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "The first 3 events:"
+            }
+          ]
+        }
+        {/if}
+      ]
+    },
+    {
+      "type": "section",
+      "fields": [
+        {
+          "type": "mrkdwn",
+          "text": "*Severity*"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "*Summary*"
+        }
+        {#for event in data.events}{#if event_index < 3}
+        ,{
+          "type": "mrkdwn",
+          "text": "_{event.payload.global_vars.severity}_"
+        },
+        {
+          "type": "plain_text",
+          "text": "{event.payload.subject}"
+        }
+        {/if}{/for}
+      ]
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "View event details in "
+            },
+            {
+              "type": "link",
+              "text": "{data.source.application.display_name}",
+              "url": "https://cloud.redhat.com/openshift/details/s/{data.events[0].payload.global_vars.subscription_id}?from=notifications&integration=teams",
+              "style": {
+                "bold": true
+              }
+            },
+            {
+              "type": "text",
+              "text": "."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
