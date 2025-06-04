@@ -19,7 +19,15 @@
 {/if}
 {
   "type": "Table",
-  "firstRowAsHeader": true,
+  "firstRowAsHeaders": true,
+  "columns": [
+    {
+      "width": 1
+    },
+    {
+      "width": 3
+    }
+  ],
   "rows": [
     {
       "type": "TableRow",
@@ -30,7 +38,12 @@
             {
               "type": "TextBlock",
               "text": "Severity"
-            },
+            }
+          ]
+        },
+        {
+          "type": "TableCell",
+          "items": [
             {
               "type": "TextBlock",
               "text": "Summary"
