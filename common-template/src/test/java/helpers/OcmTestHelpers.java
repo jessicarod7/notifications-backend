@@ -18,10 +18,10 @@ import static com.redhat.cloud.notifications.TestConstants.DEFAULT_ORG_ID;
 public class OcmTestHelpers {
 
     public static JsonObject createOcmMessage(String clusterDisplayName, String subscriptionPlan, String logDescription, String subject) {
-        return createOcmMessage(clusterDisplayName, subscriptionPlan, logDescription, subject, null, Optional.empty());
+        return createOcmMessage(clusterDisplayName, subscriptionPlan, logDescription, subject, null, null, Optional.empty());
     }
 
-    public static JsonObject createOcmMessage(String clusterDisplayName, String subscriptionPlan, String logDescription, String subject, String title, Optional<Map<String, Object>> specificGlobalVars) {
+    public static JsonObject createOcmMessage(String clusterDisplayName, String subscriptionPlan, String logDescription, String subject, String title, String severity, Optional<Map<String, Object>> specificGlobalVars) {
         JsonObject emailActionMessage = new JsonObject();
         emailActionMessage.put("bundle", "openshift");
         emailActionMessage.put("application", "cluster-manager");
@@ -35,16 +35,7 @@ public class OcmTestHelpers {
                         .withAdditionalProperty("environment_url", "http://localhost")
                         .build()
         );
-        Map<String, Object> globalVars = new HashMap<>();
-        globalVars.put("cluster_display_name", clusterDisplayName);
-        globalVars.put("subscription_id", "2XqNHRdLNEAzshh7MkkOql6fx6I");
-        globalVars.put("subscription_plan", subscriptionPlan);
-        globalVars.put("log_description", logDescription);
-        globalVars.put("internal_cluster_id", "fekelklflef");
-
-        if (specificGlobalVars.isPresent()) {
-            globalVars.putAll(specificGlobalVars.get());
-        }
+        Map<String, Object> globalVars = buildGlobalVars(clusterDisplayName, subscriptionPlan, logDescription, severity, specificGlobalVars);
 
         Event event = new Event.EventBuilder()
                 .withMetadata(new Metadata.MetadataBuilder().build())
@@ -72,5 +63,74 @@ public class OcmTestHelpers {
         ));
 
         return emailActionMessage;
+    }
+
+    private static Map<String, Object> buildGlobalVars(String clusterDisplayName, String subscriptionPlan, String logDescription, String severity, Optional<Map<String, Object>> specificGlobalVars) {
+        Map<String, Object> globalVars = new HashMap<String, Object>(Map.of(
+                "cluster_display_name", clusterDisplayName,
+                "subscription_id", "2XqNHRdLNEAzshh7MkkOql6fx6I",
+                "subscription_plan", subscriptionPlan,
+                "log_description", logDescription,
+                "internal_cluster_id", "fekelklflef",
+                "severity", severity
+        ));
+
+        specificGlobalVars.ifPresent(globalVars::putAll);
+
+        return globalVars;
+    }
+
+    public static JsonObject createOcmMessageWith4Events(String clusterDisplayName, String subscriptionPlan, String logDescription, String subject) {
+        JsonObject message = createOcmMessage(clusterDisplayName, subscriptionPlan, logDescription, subject);
+
+        List<Event> additionalEvents = List.of(
+                new Event.EventBuilder()
+                        .withMetadata(new Metadata.MetadataBuilder().build())
+                        .withPayload(
+                                new Payload.PayloadBuilder()
+                                        .withAdditionalProperty(
+                                                "global_vars",
+                                                buildGlobalVars(clusterDisplayName, subscriptionPlan, "All pods on this cluster are offline", "CRITICAL", Optional.empty()))
+                                        .withAdditionalProperty("subject", "Cluster down")
+                                        .withAdditionalProperty("title", null)
+                                        .build()
+                        )
+                        .build(),
+                new Event.EventBuilder()
+                        .withMetadata(new Metadata.MetadataBuilder().build())
+                        .withPayload(
+                                new Payload.PayloadBuilder()
+                                        .withAdditionalProperty(
+                                                "global_vars",
+                                                buildGlobalVars(clusterDisplayName, subscriptionPlan, "Upgrading Postgres to 16", "Major", Optional.empty()))
+                                        .withAdditionalProperty("subject", "Cluster upgrade in progress")
+                                        .withAdditionalProperty("title", null)
+                                        .build()
+                        )
+                        .build(),
+                new Event.EventBuilder()
+                        .withMetadata(new Metadata.MetadataBuilder().build())
+                        .withPayload(
+                                new Payload.PayloadBuilder()
+                                        .withAdditionalProperty(
+                                                "global_vars",
+                                                buildGlobalVars(clusterDisplayName, subscriptionPlan, "Failed to generate daily report", "Warning", Optional.empty()))
+                                        .withAdditionalProperty("subject", "Daily report failed")
+                                        .withAdditionalProperty("title", null)
+                                        .build()
+                        )
+                        .build()
+        );
+
+        JsonArray events = message.getJsonArray("events");
+        events.addAll(additionalEvents.stream()
+                .map(e -> Map.of(
+                        "metadata", JsonObject.mapFrom(e.getMetadata()),
+                        "payload", JsonObject.mapFrom(e.getPayload())
+                ))
+                .collect(JsonArray::new, JsonArray::add, JsonArray::addAll)
+        );
+
+        return message;
     }
 }
