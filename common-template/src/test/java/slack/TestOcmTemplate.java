@@ -20,7 +20,7 @@ class TestOcmTemplate {
 
     private static final JsonObject MESSAGE = OcmTestHelpers.createOcmMessage("Atlantic", "OSDTrial", "<b>Altlantic</b> server is experiencing flooding issues", "Subject line!");
 
-    private static final String CLUSTER_MANAGER_DEFAULT_EVENT_URL = "https://cloud.redhat.com/openshift/details/s/2XqNHRdLNEAzshh7MkkOql6fx6I?from=notifications&integration=slack";
+    private static final String CLUSTER_MANAGER_DEFAULT_EVENT_URL = "https://cloud.redhat.com/openshift/details/s/" + OcmTestHelpers.SUBSCRIPTION_ID + "?from=notifications&integration=slack";
 
     @Inject
     TemplateService templateService;
@@ -47,7 +47,7 @@ class TestOcmTemplate {
 
     private void checkResult(String eventType, String result) {
         switch (eventType) {
-            case null -> assertEquals("1 event triggered from Cluster Manager - OpenShift. <" + CLUSTER_MANAGER_DEFAULT_EVENT_URL + "|Open Cluster Manager>", result);
+            case null -> assertEquals("1 event has been triggered by cluster Atlantic:\\n- *[" + OcmTestHelpers.DEFAULT_SEVERITY + "]* Subject line!\\n\\nView event details in <" + CLUSTER_MANAGER_DEFAULT_EVENT_URL + "|Cluster Manager - OpenShift>.", result);
             default -> throw new IllegalArgumentException(eventType + "is not a valid event type");
         }
     }

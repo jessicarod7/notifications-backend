@@ -17,8 +17,11 @@ import static com.redhat.cloud.notifications.TestConstants.DEFAULT_ORG_ID;
 
 public class OcmTestHelpers {
 
+    public static String SUBSCRIPTION_ID = "2XqNHRdLNEAzshh7MkkOql6fx6I";
+    public static String DEFAULT_SEVERITY = "Info";
+
     public static JsonObject createOcmMessage(String clusterDisplayName, String subscriptionPlan, String logDescription, String subject) {
-        return createOcmMessage(clusterDisplayName, subscriptionPlan, logDescription, subject, null, null, Optional.empty());
+        return createOcmMessage(clusterDisplayName, subscriptionPlan, logDescription, subject, null, DEFAULT_SEVERITY, Optional.empty());
     }
 
     public static JsonObject createOcmMessage(String clusterDisplayName, String subscriptionPlan, String logDescription, String subject, String title, String severity, Optional<Map<String, Object>> specificGlobalVars) {
@@ -66,9 +69,9 @@ public class OcmTestHelpers {
     }
 
     private static Map<String, Object> buildGlobalVars(String clusterDisplayName, String subscriptionPlan, String logDescription, String severity, Optional<Map<String, Object>> specificGlobalVars) {
-        Map<String, Object> globalVars = new HashMap<String, Object>(Map.of(
+        Map<String, Object> globalVars = new HashMap<>(Map.of(
                 "cluster_display_name", clusterDisplayName,
-                "subscription_id", "2XqNHRdLNEAzshh7MkkOql6fx6I",
+                "subscription_id", SUBSCRIPTION_ID,
                 "subscription_plan", subscriptionPlan,
                 "log_description", logDescription,
                 "internal_cluster_id", "fekelklflef",
