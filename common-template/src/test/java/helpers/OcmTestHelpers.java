@@ -93,7 +93,7 @@ public class OcmTestHelpers {
                                 new Payload.PayloadBuilder()
                                         .withAdditionalProperty(
                                                 "global_vars",
-                                                buildGlobalVars(clusterDisplayName, subscriptionPlan, "All pods on this cluster are offline", "CRITICAL", Optional.empty()))
+                                                buildGlobalVars(clusterDisplayName, subscriptionPlan, "All pods on this cluster are offline", "Critical", Optional.empty()))
                                         .withAdditionalProperty("subject", "Cluster down")
                                         .withAdditionalProperty("title", null)
                                         .build()
