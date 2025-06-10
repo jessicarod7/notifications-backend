@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @QuarkusTest
 class TestOcmTemplate {
 
-    private static final String CLUSTER_MANAGER_DEFAULT_EVENT_URL = "https://cloud.redhat.com/openshift/details/s/" + OcmTestHelpers.SUBSCRIPTION_ID + "?from=notifications&integration=teams";
+    public static final String CLUSTER_MANAGER_DEFAULT_EVENT_URL = "https://cloud.redhat.com/openshift/details/s/" + OcmTestHelpers.SUBSCRIPTION_ID + "?from=notifications&integration=teams";
     public static final String EXPECTED_NOTIFICATION_TEXT_MESSAGE = "\"text\": \"- 1 event has been triggered by cluster Atlantic:\\r- **[" + OcmTestHelpers.DEFAULT_SEVERITY + "]** Subject line!" +
             "\\r- View event details in [Cluster Manager - OpenShift](" + CLUSTER_MANAGER_DEFAULT_EVENT_URL + ").\"";
     public static final String EXPECTED_MULTIPLE_EVENTS_NOTIFICATION_TEXT_MESSAGE = "\"text\": \"- 4 events have been triggered by cluster Atlantic.\\r- The first 3 events:" +
