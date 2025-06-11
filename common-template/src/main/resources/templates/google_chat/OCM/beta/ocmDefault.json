@@ -19,7 +19,7 @@
               {#for event in data.events}{#if event_index < 3}
               {
                 "textParagraph": {
-                  "text": "- <b>[{event.payload.global_vars.severity}]</b> {event.payload.subject}\n"
+                  "text": "- <b>[{event.payload.global_vars.severity}]</b> {event.payload.subject}"
                 }
               },
               {/if}{/for}

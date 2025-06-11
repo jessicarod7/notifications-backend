@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @QuarkusTest
 class TestOcmTemplate {
 
-    private static final String CLUSTER_MANAGER_DEFAULT_EVENT_URL = "https://cloud.redhat.com/openshift/details/s/" + OcmTestHelpers.SUBSCRIPTION_ID + "?from=notifications&integration=slack";
+    public static final String CLUSTER_MANAGER_DEFAULT_EVENT_URL = "https://cloud.redhat.com/openshift/details/s/" + OcmTestHelpers.SUBSCRIPTION_ID + "?from=notifications&integration=slack";
 
     @Inject
     TemplateService templateService;
