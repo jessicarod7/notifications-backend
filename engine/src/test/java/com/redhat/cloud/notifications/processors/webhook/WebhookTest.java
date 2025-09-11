@@ -42,6 +42,7 @@ import java.util.List;
 import static com.redhat.cloud.notifications.TestConstants.DEFAULT_ORG_ID;
 import static com.redhat.cloud.notifications.processors.ConnectorSender.TOCAMEL_CHANNEL;
 import static com.redhat.cloud.notifications.processors.webhooks.WebhookTypeProcessor.PROCESSED_WEBHOOK_COUNTER;
+import static com.redhat.cloud.notifications.transformers.BaseTransformer.SEVERITY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.times;
@@ -126,6 +127,7 @@ public class WebhookTest {
 
         final JsonObject payloadToSent = transformer.toJsonObject(event);
         assertEquals(payloadToSent, payload.getJsonObject("payload"));
+        assertEquals("Important", payload.getJsonObject("payload").getString(SEVERITY));
 
         micrometerAssertionHelper.assertCounterIncrement(PROCESSED_WEBHOOK_COUNTER, 1);
     }
@@ -149,6 +151,7 @@ public class WebhookTest {
         webhookActionMessage.setEventType("testWebhook");
         webhookActionMessage.setAccountId("tenant");
         webhookActionMessage.setOrgId(DEFAULT_ORG_ID);
+        webhookActionMessage.setSeverity("Important");
 
         Payload payload1 = new Payload.PayloadBuilder()
                 .withAdditionalProperty("any", "thing")

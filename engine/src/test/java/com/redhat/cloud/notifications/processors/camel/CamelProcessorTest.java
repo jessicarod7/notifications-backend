@@ -38,6 +38,7 @@ import static com.redhat.cloud.notifications.models.EndpointType.CAMEL;
 import static com.redhat.cloud.notifications.processors.ConnectorSender.CLOUD_EVENT_TYPE_PREFIX;
 import static com.redhat.cloud.notifications.processors.ConnectorSender.TOCAMEL_CHANNEL;
 import static com.redhat.cloud.notifications.processors.ConnectorSender.X_RH_NOTIFICATIONS_CONNECTOR_HEADER;
+import static com.redhat.cloud.notifications.transformers.BaseTransformer.SEVERITY;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.ZoneOffset.UTC;
 import static org.awaitility.Awaitility.await;
@@ -120,6 +121,7 @@ public abstract class CamelProcessorTest {
         assertEquals(DEFAULT_ORG_ID, notification.getString("org_id"));
         assertEquals(WEBHOOK_URL, notification.getString("webhookUrl"));
         assertEquals(getExpectedMessage(withHostUrl), notification.getString("message"));
+        assertEquals("Moderate", notification.getString(SEVERITY));
     }
 
     protected void assertNotificationsConnectorHeader(Message<JsonObject> message) {
@@ -145,6 +147,7 @@ public abstract class CamelProcessorTest {
                 .withEventType("policy-triggered")
                 .withOrgId(DEFAULT_ORG_ID)
                 .withTimestamp(LocalDateTime.now(UTC))
+                .withSeverity("Moderate")
                 .withContext(contextBuilder.build())
                 .withEvents(List.of(
                         new com.redhat.cloud.notifications.ingress.Event.EventBuilder()

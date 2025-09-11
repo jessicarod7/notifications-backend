@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static com.redhat.cloud.notifications.processors.ConnectorSender.TOCAMEL_CHANNEL;
+import static com.redhat.cloud.notifications.transformers.BaseTransformer.SEVERITY;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -142,6 +143,7 @@ class DrawerProcessorTest {
         assertNotNull(cloudEventMetadata);
         assertFalse(cloudEventMetadata.getId().isEmpty());
         assertFalse(cloudEventMetadata.getType().isEmpty());
+        assertEquals("Critical", message.getPayload().getString(SEVERITY));
 
         deleteEvent(createdEvent);
     }
@@ -161,6 +163,7 @@ class DrawerProcessorTest {
                 .withApplication("policies")
                 .withBundle("rhel")
                 .withTimestamp(LocalDateTime.of(2022, 8, 24, 13, 30, 0, 0))
+                .withSeverity("Critical")
                 .withContext(
                     new Context.ContextBuilder()
                         .withAdditionalProperty("foo", "im foo")
