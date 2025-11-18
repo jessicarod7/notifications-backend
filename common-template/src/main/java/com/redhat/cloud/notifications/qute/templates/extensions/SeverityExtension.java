@@ -12,4 +12,13 @@ public class SeverityExtension {
             return String.format("[%s] ", severity);
         }
     }
+
+    @TemplateExtension
+    public static String severityBodyIcon(String severity) {
+        if ("".equals(severity) || "UNDEFINED".equals(severity) || "NONE".equals(severity)) {
+            return null;
+        } else {
+            return String.format(severity.toLowerCase());
+        }
+    }
 }
