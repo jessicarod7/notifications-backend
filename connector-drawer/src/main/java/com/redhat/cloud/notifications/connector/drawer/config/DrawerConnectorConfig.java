@@ -1,6 +1,8 @@
 package com.redhat.cloud.notifications.connector.drawer.config;
 
 import com.redhat.cloud.notifications.connector.v2.http.HttpConnectorConfig;
+import com.redhat.cloud.notifications.unleash.UnleashContextBuilder;
+import io.getunleash.UnleashContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -33,11 +35,13 @@ public class DrawerConnectorConfig extends HttpConnectorConfig {
     }
 
     public boolean useCommonTemplateModule() {
-        return unleash.isEnabled(toggleUseCommonTemplateModule, false);
+        UnleashContext unleashContext = UnleashContextBuilder.buildUnleashContextWithEnv(unleashEnvironment);
+        return unleash.isEnabled(toggleUseCommonTemplateModule, unleashContext, false);
     }
 
     public boolean pushNotificationsToKafka() {
-        return unleash.isEnabled(togglePushNotificationsToKafka, true);
+        UnleashContext unleashContext = UnleashContextBuilder.buildUnleashContextWithEnv(unleashEnvironment);
+        return unleash.isEnabled(togglePushNotificationsToKafka, unleashContext, true);
     }
 
 }

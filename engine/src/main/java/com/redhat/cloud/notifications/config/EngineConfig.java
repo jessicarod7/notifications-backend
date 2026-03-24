@@ -1,7 +1,6 @@
 package com.redhat.cloud.notifications.config;
 
 import com.redhat.cloud.notifications.unleash.ToggleRegistry;
-import com.redhat.cloud.notifications.unleash.UnleashContextBuilder;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
 import io.quarkus.logging.Log;
@@ -16,6 +15,9 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnv;
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnvAndOrgId;
 
 @ApplicationScoped
 public class EngineConfig {
@@ -33,6 +35,7 @@ public class EngineConfig {
     private static final String NOTIFICATIONS_KAFKA_OUTGOING_HIGH_VOLUME_TOPIC_ENABLED = "notifications.kafka.outgoing.high-volume.topic.enabled";
     private static final String KAFKA_TOCAMEL_MAXIMUM_REQUEST_SIZE = "mp.messaging.outgoing.tocamel.max.request.size";
     private static final String UNLEASH = "notifications.unleash.enabled";
+    private static final String UNLEASH_ENVIRONMENT = "notifications.unleash-environment";
     private static final String PROCESSOR_CONNECTORS_MAX_SERVER_ERRORS = "processor.connectors.max-server-errors";
     private static final String PROCESSOR_CONNECTORS_MIN_DELAY_SINCE_FIRST_SERVER_ERROR = "processor.connectors.min-delay-since-first-server-error";
 
@@ -67,6 +70,9 @@ public class EngineConfig {
     @ConfigProperty(name = UNLEASH, defaultValue = "false")
     @Deprecated(forRemoval = true, since = "To be removed when we're done migrating to Unleash in all environments")
     boolean unleashEnabled;
+
+    @ConfigProperty(name = UNLEASH_ENVIRONMENT, defaultValue = "default")
+    protected String unleashEnvironment;
 
     @ConfigProperty(name = "notifications.drawer.enabled", defaultValue = "false")
     @Deprecated(forRemoval = true, since = "To be removed when we're done migrating to Unleash in all environments")
@@ -190,6 +196,7 @@ public class EngineConfig {
         config.put(KAFKA_TOCAMEL_MAXIMUM_REQUEST_SIZE, getKafkaToCamelMaximumRequestSize());
         config.put(SECURED_EMAIL_TEMPLATES, isSecuredEmailTemplatesEnabled());
         config.put(UNLEASH, unleashEnabled);
+        config.put(UNLEASH_ENVIRONMENT, unleashEnvironment);
         config.put(PROCESSOR_CONNECTORS_MAX_SERVER_ERRORS, maxServerErrors);
         config.put(PROCESSOR_CONNECTORS_MIN_DELAY_SINCE_FIRST_SERVER_ERROR, minDelaySinceFirstServerErrorBeforeDisabling);
         config.put(NOTIFICATIONS_EMAIL_SENDER_HYBRID_CLOUD_CONSOLE, rhHccSender);
@@ -210,7 +217,8 @@ public class EngineConfig {
 
     public boolean isAsyncAggregationEnabled() {
         if (unleashEnabled) {
-            return unleash.isEnabled(asyncAggregationToggle, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(asyncAggregationToggle, unleashContext, false);
         } else {
             return asyncAggregation;
         }
@@ -218,7 +226,8 @@ public class EngineConfig {
 
     public boolean isAsyncEventProcessing() {
         if (unleashEnabled) {
-            return unleash.isEnabled(asyncEventProcessingToggle, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(asyncEventProcessingToggle, unleashContext, false);
         } else {
             return false;
         }
@@ -230,7 +239,8 @@ public class EngineConfig {
 
     public boolean isDrawerEnabled() {
         if (unleashEnabled) {
-            return unleash.isEnabled(drawerToggle, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(drawerToggle, unleashContext, false);
         } else {
             return drawerEnabled;
         }
@@ -258,7 +268,8 @@ public class EngineConfig {
 
     public boolean isKafkaConsumedTotalCheckerEnabled() {
         if (unleashEnabled) {
-            return unleash.isEnabled(kafkaConsumedTotalCheckerToggle, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(kafkaConsumedTotalCheckerToggle, unleashContext, false);
         } else {
             return kafkaConsumedTotalCheckerEnabled;
         }
@@ -272,6 +283,7 @@ public class EngineConfig {
         if (unleashEnabled && null != endpointId) {
             UnleashContext unleashContext = UnleashContext.builder()
                 .addProperty("endpointId", endpointId.toString())
+                .environment(unleashEnvironment)
                 .build();
             return unleash.isEnabled(toggleBlacklistedEndpoints, unleashContext, false);
         } else {
@@ -283,6 +295,7 @@ public class EngineConfig {
         if (unleashEnabled && null != eventTypeId) {
             UnleashContext unleashContext = UnleashContext.builder()
                 .addProperty("eventTypeId", eventTypeId.toString())
+                .environment(unleashEnvironment)
                 .build();
             return unleash.isEnabled(toggleBlacklistedEventTypes, unleashContext, false);
         } else {
@@ -298,6 +311,10 @@ public class EngineConfig {
     @Deprecated(forRemoval = true)
     public boolean isUseRbacForFetchingUsers() {
         return useRbacForFetchingUsers;
+    }
+
+    public String getUnleashEnvironment() {
+        return unleashEnvironment;
     }
 
     public int getMaxServerErrors() {
@@ -326,7 +343,8 @@ public class EngineConfig {
 
     public boolean isOutgoingKafkaHighVolumeTopicEnabled() {
         if (unleashEnabled) {
-            return this.unleash.isEnabled(this.toggleKafkaOutgoingHighVolumeTopic, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return this.unleash.isEnabled(this.toggleKafkaOutgoingHighVolumeTopic, unleashContext, false);
         } else {
             return this.outgoingKafkaHighVolumeTopicEnabled;
         }
@@ -334,7 +352,8 @@ public class EngineConfig {
 
     public boolean isIncludeSeverityToFilterRecipientsEnabled(String orgId) {
         if (unleashEnabled) {
-            return unleash.isEnabled(toggleIncludeSeverityToFilterRecipients, UnleashContextBuilder.buildUnleashContextWithOrgId(orgId), false);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
+            return unleash.isEnabled(toggleIncludeSeverityToFilterRecipients, unleashContext, false);
         } else {
             return false;
         }
@@ -342,7 +361,8 @@ public class EngineConfig {
 
     public boolean isSkipMessageProcessing() {
         if (unleashEnabled) {
-            return unleash.isEnabled(toggleSkipProcessingMessagesOnReplayService, true);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(toggleSkipProcessingMessagesOnReplayService, unleashContext, true);
         } else {
             return true;
         }
@@ -358,7 +378,8 @@ public class EngineConfig {
 
     public boolean isExportServiceOidcAuthEnabled(String orgId) {
         if (unleashEnabled) {
-            return unleash.isEnabled(exportServiceOidcAuthToggle, UnleashContextBuilder.buildUnleashContextWithOrgId(orgId), false);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
+            return unleash.isEnabled(exportServiceOidcAuthToggle, unleashContext, false);
         } else {
             return false;
         }
@@ -366,7 +387,8 @@ public class EngineConfig {
 
     public boolean isSubscriptionsDeduplicationWillBeNotifiedEnabled(String orgId) {
         if (unleashEnabled) {
-            return unleash.isEnabled(toggleSubscriptionsDeduplicationWillBeNotified, UnleashContextBuilder.buildUnleashContextWithOrgId(orgId), false);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
+            return unleash.isEnabled(toggleSubscriptionsDeduplicationWillBeNotified, unleashContext, false);
         } else {
             return false;
         }

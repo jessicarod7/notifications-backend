@@ -93,6 +93,8 @@ objects:
           value: ${NOTIFICATIONS_CONNECTOR_SEDA_CONCURRENT_CONSUMERS}
         - name: NOTIFICATIONS_UNLEASH_ENABLED
           value: ${NOTIFICATIONS_UNLEASH_ENABLED}
+        - name: NOTIFICATIONS_UNLEASH_ENVIRONMENT
+          value: ${NOTIFICATIONS_UNLEASH_ENVIRONMENT}
         - name: QUARKUS_HTTP_PORT
           value: ${QUARKUS_HTTP_PORT}
         - name: QUARKUS_LOG_CATEGORY__COM_REDHAT_CLOUD_NOTIFICATIONS__LEVEL
@@ -194,6 +196,8 @@ parameters:
   value: INFO
 - name: NOTIFICATIONS_UNLEASH_ENABLED
   value: "false"
+- name: NOTIFICATIONS_UNLEASH_ENVIRONMENT
+  value: "default"
 - name: OIDC_CLIENT_ENABLED
   description: If true, the OIDC client will be enabled.
   value: "false"

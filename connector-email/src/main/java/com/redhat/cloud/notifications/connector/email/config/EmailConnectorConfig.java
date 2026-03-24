@@ -9,6 +9,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.Map;
 
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnv;
+
 @ApplicationScoped
 public class EmailConnectorConfig extends HttpConnectorConfig {
     private static final String BOP_API_TOKEN = "notifications.connector.user-provider.bop.api_token";
@@ -121,7 +123,8 @@ public class EmailConnectorConfig extends HttpConnectorConfig {
 
     public boolean isIncomingKafkaHighVolumeTopicEnabled() {
         if (unleashEnabled) {
-            return unleash.isEnabled(toggleKafkaIncomingHighVolumeTopic, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(toggleKafkaIncomingHighVolumeTopic, unleashContext, false);
         } else {
             return this.incomingKafkaHighVolumeTopicEnabled;
         }
@@ -153,6 +156,7 @@ public class EmailConnectorConfig extends HttpConnectorConfig {
                 }
             }
             UnleashContext.Builder unleashContextBuilder = UnleashContext.builder()
+                .environment(unleashEnvironment)
                 .addProperty("orgId", orgId);
 
             if (null != bundleApplicationEventType) {

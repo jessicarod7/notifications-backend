@@ -2,6 +2,7 @@ package com.redhat.cloud.notifications.config;
 
 import com.redhat.cloud.notifications.unleash.ToggleRegistry;
 import io.getunleash.Unleash;
+import io.getunleash.UnleashContext;
 import io.quarkus.logging.Log;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -13,6 +14,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnv;
+
 @ApplicationScoped
 public class AggregatorConfig {
 
@@ -20,6 +23,7 @@ public class AggregatorConfig {
      * Env vars configuration
      */
     private static final String UNLEASH = "notifications.unleash.enabled";
+    private static final String UNLEASH_ENVIRONMENT = "notifications.unleash-environment";
 
     /*
      * Unleash configuration
@@ -32,6 +36,9 @@ public class AggregatorConfig {
     @ConfigProperty(name = UNLEASH, defaultValue = "false")
     @Deprecated(forRemoval = true, since = "To be removed when we're done migrating to Unleash in all environments")
     boolean unleashEnabled;
+
+    @ConfigProperty(name = UNLEASH_ENVIRONMENT, defaultValue = "default")
+    protected String unleashEnvironment;
 
     @Inject
     ToggleRegistry toggleRegistry;
@@ -51,6 +58,7 @@ public class AggregatorConfig {
     void logConfigAtStartup(@Observes Startup event) {
         Map<String, Object> config = new TreeMap<>();
         config.put(UNLEASH, unleashEnabled);
+        config.put(UNLEASH_ENVIRONMENT, unleashEnvironment);
         config.put(fetchAggregationsWithAtLeastOneSubscriberToggle, isFetchAggregationsWithAtLeastOneSubscriber());
         Log.info("=== Startup configuration ===");
         config.forEach((key, value) -> {
@@ -60,7 +68,8 @@ public class AggregatorConfig {
 
     public boolean isFetchAggregationsWithAtLeastOneSubscriber() {
         if (unleashEnabled) {
-            return unleash.isEnabled(fetchAggregationsWithAtLeastOneSubscriberToggle, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(fetchAggregationsWithAtLeastOneSubscriberToggle, unleashContext, false);
         } else {
             return false;
         }

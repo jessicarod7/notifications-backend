@@ -14,6 +14,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnv;
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnvAndOrgId;
+
 @ApplicationScoped
 public class BackendConfig {
 
@@ -36,6 +39,7 @@ public class BackendConfig {
     private static final String RBAC_URL = "notifications.rbac.url";
     private static final String RBAC_ENABLED = "rbac.enabled";
     private static final String UNLEASH = "notifications.unleash.enabled";
+    private static final String UNLEASH_ENVIRONMENT = "notifications.unleash-environment";
     private static final String MAINTENANCE_MODE = "notifications.maintenance.mode";
 
     /*
@@ -55,6 +59,9 @@ public class BackendConfig {
     @ConfigProperty(name = UNLEASH, defaultValue = "false")
     @Deprecated(forRemoval = true, since = "To be removed when we're done migrating to Unleash in all environments")
     boolean unleashEnabled;
+
+    @ConfigProperty(name = UNLEASH_ENVIRONMENT, defaultValue = "default")
+    protected String unleashEnvironment;
 
     @ConfigProperty(name = "notifications.drawer.enabled", defaultValue = "false")
     @Deprecated(forRemoval = true, since = "To be removed when we're done migrating to Unleash in all environments")
@@ -149,6 +156,7 @@ public class BackendConfig {
         config.put(RBAC_ENABLED, isRBACEnabled());
         config.put(SECURED_EMAIL_TEMPLATES, useSecuredEmailTemplates);
         config.put(UNLEASH, unleashEnabled);
+        config.put(UNLEASH_ENVIRONMENT, unleashEnvironment);
         config.put(sourcesOidcAuthToggle, isSourcesOidcAuthEnabled(null));
         config.put(showHiddenEventTypesToggle, isShowHiddenEventTypes(null));
 
@@ -164,7 +172,8 @@ public class BackendConfig {
 
     public boolean isDrawerEnabled() {
         if (unleashEnabled) {
-            return unleash.isEnabled(drawerToggle, false);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(drawerToggle, unleashContext, false);
         } else {
             return drawerEnabled;
         }
@@ -188,7 +197,7 @@ public class BackendConfig {
 
     public boolean isKesselEnabled(String orgId) {
         if (unleashEnabled) {
-            UnleashContext unleashContext = buildUnleashContextWithOrgId(orgId);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
             return unleash.isEnabled(kesselToggle, unleashContext, false);
         } else {
             return kesselEnabled;
@@ -225,7 +234,7 @@ public class BackendConfig {
 
     public boolean isIgnoreSourcesErrorOnEndpointDelete(String orgId) {
         if (unleashEnabled) {
-            UnleashContext unleashContext = buildUnleashContextWithOrgId(orgId);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
             return unleash.isEnabled(ignoreSourcesErrorOnEndpointDeleteToggle, unleashContext, false);
         } else {
             return false;
@@ -234,7 +243,7 @@ public class BackendConfig {
 
     public boolean isKesselChecksOnEventLogEnabled(String orgId) {
         if (unleashEnabled) {
-            UnleashContext unleashContext = buildUnleashContextWithOrgId(orgId);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
             return unleash.isEnabled(kesselChecksOnEventLogToggle, unleashContext, false);
         } else {
             return false;
@@ -243,7 +252,8 @@ public class BackendConfig {
 
     public boolean isUseCommonTemplateModuleForUserPrefApisToggle() {
         if (unleashEnabled) {
-            return unleash.isEnabled(useCommonTemplateModuleForUserPrefApisToggle, true);
+            UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+            return unleash.isEnabled(useCommonTemplateModuleForUserPrefApisToggle, unleashContext, true);
         } else {
             return true;
         }
@@ -253,16 +263,10 @@ public class BackendConfig {
         return this.rbacEnabled;
     }
 
-    private static UnleashContext buildUnleashContextWithOrgId(String orgId) {
-        UnleashContext unleashContext = UnleashContext.builder()
-            .addProperty("orgId", orgId)
-            .build();
-        return unleashContext;
-    }
-
     public boolean isMaintenanceModeEnabled(String path) {
         if (unleashEnabled) {
             UnleashContext unleashContext = UnleashContext.builder()
+                .environment(unleashEnvironment)
                 .addProperty("method_and_path", path)
                 .build();
             return unleash.isEnabled(maintenanceModeToggle, unleashContext, false);
@@ -273,6 +277,7 @@ public class BackendConfig {
     public boolean isUseBetaTemplatesEnabled(final String orgId) {
         if (unleashEnabled) {
             UnleashContext unleashContext = UnleashContext.builder()
+                .environment(unleashEnvironment)
                 .addProperty("orgId", orgId)
                 .build();
             return unleash.isEnabled(toggleUseBetaTemplatesEnabled, unleashContext, false);
@@ -294,7 +299,7 @@ public class BackendConfig {
     @Deprecated(forRemoval = true)
     public boolean isBehaviorGroupCreationLimitDisabledForOrgId(final String orgId) {
         if (unleashEnabled) {
-            final UnleashContext unleashContext = buildUnleashContextWithOrgId(orgId);
+            final UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
 
             return unleash.isEnabled(bypassBehaviorGroupMaxCreationLimitToggle, unleashContext, false);
         } else {
@@ -304,7 +309,7 @@ public class BackendConfig {
 
     public boolean isSourcesOidcAuthEnabled(String orgId) {
         if (unleashEnabled) {
-            UnleashContext unleashContext = buildUnleashContextWithOrgId(orgId);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
             return unleash.isEnabled(sourcesOidcAuthToggle, unleashContext, false);
         } else {
             return false;
@@ -313,7 +318,7 @@ public class BackendConfig {
 
     public boolean isShowHiddenEventTypes(String orgId) {
         if (unleashEnabled) {
-            return unleash.isEnabled(showHiddenEventTypesToggle, buildUnleashContextWithOrgId(orgId), false);
+            return unleash.isEnabled(showHiddenEventTypesToggle, buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId), false);
         } else {
             return false;
         }

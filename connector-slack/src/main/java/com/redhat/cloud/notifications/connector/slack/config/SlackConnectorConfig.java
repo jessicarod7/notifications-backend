@@ -39,6 +39,7 @@ public class SlackConnectorConfig extends HttpConnectorConfig {
                 }
             }
             UnleashContext.Builder unleashContextBuilder = UnleashContext.builder()
+                .environment(unleashEnvironment)
                 .addProperty("orgId", orgId);
 
             if (null != bundleApplicationEventType) {

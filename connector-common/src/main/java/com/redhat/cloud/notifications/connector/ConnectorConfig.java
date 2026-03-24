@@ -1,7 +1,6 @@
 package com.redhat.cloud.notifications.connector;
 
 import com.redhat.cloud.notifications.unleash.ToggleRegistry;
-import com.redhat.cloud.notifications.unleash.UnleashContextBuilder;
 import io.getunleash.Unleash;
 import io.getunleash.UnleashContext;
 import io.quarkus.arc.DefaultBean;
@@ -17,6 +16,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static com.redhat.cloud.notifications.connector.ConnectorConfig.BASE_CONFIG_PRIORITY;
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnvAndOrgId;
 
 @ApplicationScoped
 @DefaultBean
@@ -41,6 +41,7 @@ public class ConnectorConfig {
     private static final String SEDA_QUEUE_SIZE = "notifications.connector.seda.queue-size";
     private static final String SUPPORTED_CONNECTOR_HEADERS = "notifications.connector.supported-connector-headers";
     private static final String UNLEASH = "notifications.unleash.enabled";
+    private static final String UNLEASH_ENVIRONMENT = "notifications.unleash-environment";
 
     /*
      * Unleash configuration
@@ -61,6 +62,9 @@ public class ConnectorConfig {
     @ConfigProperty(name = UNLEASH, defaultValue = "false")
     @Deprecated(forRemoval = true, since = "To be removed when we're done migrating to Unleash in all environments")
     protected boolean unleashEnabled;
+
+    @ConfigProperty(name = UNLEASH_ENVIRONMENT, defaultValue = "default")
+    protected String unleashEnvironment;
 
     @ConfigProperty(name = ENDPOINT_CACHE_MAX_SIZE, defaultValue = "100")
     int endpointCacheMaxSize;
@@ -147,6 +151,7 @@ public class ConnectorConfig {
         config.put(SEDA_QUEUE_SIZE, sedaQueueSize);
         config.put(SUPPORTED_CONNECTOR_HEADERS, supportedConnectorHeaders);
         config.put(UNLEASH, unleashEnabled);
+        config.put(UNLEASH_ENVIRONMENT, unleashEnvironment);
         config.put(sourcesOidcAuthToggle, isSourcesOidcAuthEnabled(null));
         return config;
     }
@@ -213,7 +218,7 @@ public class ConnectorConfig {
 
     public boolean isSourcesOidcAuthEnabled(String orgId) {
         if (unleashEnabled) {
-            UnleashContext unleashContext = UnleashContextBuilder.buildUnleashContextWithOrgId(orgId);
+            UnleashContext unleashContext = buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
             return unleash.isEnabled(sourcesOidcAuthToggle, unleashContext, false);
         } else {
             return false;

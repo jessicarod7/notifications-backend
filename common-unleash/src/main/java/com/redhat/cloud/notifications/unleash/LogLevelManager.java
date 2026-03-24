@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.getunleash.FeatureDefinition;
 import io.getunleash.Unleash;
+import io.getunleash.UnleashContext;
 import io.getunleash.variant.Payload;
 import io.getunleash.variant.Variant;
 import io.quarkus.logging.Log;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnv;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.INFO;
@@ -32,10 +34,14 @@ import static java.util.stream.Collectors.toSet;
 public class LogLevelManager {
 
     private static final String UNLEASH_TOGGLE_NAME = "notifications.log-levels";
+    private static final String UNLEASH_ENVIRONMENT = "notifications.unleash-environment";
     private static final String INHERITED = "INHERITED";
 
     @ConfigProperty(name = "host-name", defaultValue = "localhost")
     String hostName;
+
+    @ConfigProperty(name = UNLEASH_ENVIRONMENT, defaultValue = "default")
+    protected String unleashEnvironment;
 
     @Inject
     Unleash unleash;
@@ -60,7 +66,8 @@ public class LogLevelManager {
     }
 
     private LogConfig[] getLogConfigs() {
-        Variant variant = unleash.getVariant(UNLEASH_TOGGLE_NAME);
+        UnleashContext unleashContext = buildUnleashContextWithEnv(unleashEnvironment);
+        Variant variant = unleash.getVariant(UNLEASH_TOGGLE_NAME, unleashContext);
         if (variant.isEnabled()) {
             Optional<Payload> payload = variant.getPayload();
             if (payload.isEmpty()) {

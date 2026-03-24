@@ -52,6 +52,8 @@ objects:
           value: ${HOSTNAME}
         - name: NOTIFICATIONS_UNLEASH_ENABLED
           value: ${NOTIFICATIONS_UNLEASH_ENABLED}
+        - name: NOTIFICATIONS_UNLEASH_ENVIRONMENT
+          value: ${NOTIFICATIONS_UNLEASH_ENVIRONMENT}
         - name: QUARKUS_LOG_CATEGORY__COM_REDHAT_CLOUD_NOTIFICATIONS__LEVEL
           value: ${NOTIFICATIONS_LOG_LEVEL}
         - name: QUARKUS_LOG_CLOUDWATCH_ENABLED
@@ -100,6 +102,8 @@ parameters:
   value: INFO
 - name: NOTIFICATIONS_UNLEASH_ENABLED
   value: "false"
+- name: NOTIFICATIONS_UNLEASH_ENVIRONMENT
+  value: "default"
 - name: SENTRY_DSN
   description: The DSN to push data to Sentry — i.e. https://public_key@host/project_id?environment=
 - name: SENTRY_ENABLED

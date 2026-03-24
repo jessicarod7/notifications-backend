@@ -140,6 +140,8 @@ objects:
           value: ${KESSEL_TIMEOUT_MS}
         - name: NOTIFICATIONS_UNLEASH_ENABLED
           value: ${NOTIFICATIONS_UNLEASH_ENABLED}
+        - name: NOTIFICATIONS_UNLEASH_ENVIRONMENT
+          value: ${NOTIFICATIONS_UNLEASH_ENVIRONMENT}
         - name: QUARKUS_REST_CLIENT_RBAC_AUTHENTICATION_READ_TIMEOUT
           value: ${RBAC_AUTHENTICATION_READ_TIMEOUT}
         - name: QUARKUS_UNLEASH_ACTIVE
@@ -295,6 +297,8 @@ parameters:
   value: "30000"
 - name: NOTIFICATIONS_UNLEASH_ENABLED
   value: "false"
+- name: NOTIFICATIONS_UNLEASH_ENVIRONMENT
+  value: "default"
 - name: QUARKUS_LOG_CLOUDWATCH_API_CALL_TIMEOUT
   description: Amount of time to allow the CloudWatch client to complete the execution of an API call expressed with the ISO-8601 duration format PnDTnHnMn.nS.
   value: PT30S

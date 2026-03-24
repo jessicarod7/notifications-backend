@@ -39,7 +39,7 @@ public class PagerDutyConnectorConfig extends HttpConnectorConfig {
 
     public boolean isDynamicPagerdutySeverityEnabled(String orgId) {
         if (unleashEnabled) {
-            UnleashContext unleashContext = UnleashContextBuilder.buildUnleashContextWithOrgId(orgId);
+            UnleashContext unleashContext = UnleashContextBuilder.buildUnleashContextWithEnvAndOrgId(unleashEnvironment, orgId);
 
             return unleash.isEnabled(toggleDynamicPagerdutySeverity, unleashContext, false);
         } else {

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.getunleash.FeatureDefinition;
 import io.getunleash.Unleash;
+import io.getunleash.UnleashContext;
 import io.getunleash.variant.Payload;
 import io.getunleash.variant.Variant;
 import io.quarkus.logging.Log;
@@ -17,6 +18,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.util.List;
 import java.util.Optional;
 
+import static com.redhat.cloud.notifications.unleash.UnleashContextBuilder.buildUnleashContextWithEnv;
 import static java.lang.Boolean.TRUE;
 
 @ApplicationScoped
@@ -36,6 +38,9 @@ public class KafkaChannelManager {
     @Inject
     ChannelRegistry channelRegistry;
 
+    @Inject
+    EngineConfig engineConfig;
+
     public void process(@Observes List<FeatureDefinition> featureDefinitions) {
         KafkaChannelConfig[] kafkaChannelConfigs = getKafkaChannelConfigs();
         for (KafkaChannelConfig kafkaChannelConfig : kafkaChannelConfigs) {
@@ -54,7 +59,8 @@ public class KafkaChannelManager {
     }
 
     private KafkaChannelConfig[] getKafkaChannelConfigs() {
-        Variant variant = unleash.getVariant(UNLEASH_TOGGLE_NAME);
+        UnleashContext unleashContext = buildUnleashContextWithEnv(engineConfig.getUnleashEnvironment());
+        Variant variant = unleash.getVariant(UNLEASH_TOGGLE_NAME, unleashContext);
         if (variant.isEnabled()) {
             Optional<Payload> payload = variant.getPayload();
             if (payload.isEmpty()) {
