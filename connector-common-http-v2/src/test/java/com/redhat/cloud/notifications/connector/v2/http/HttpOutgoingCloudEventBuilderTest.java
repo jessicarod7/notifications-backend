@@ -2,6 +2,7 @@ package com.redhat.cloud.notifications.connector.v2.http;
 
 import com.redhat.cloud.notifications.connector.v2.BaseConnectorIntegrationTest;
 import com.redhat.cloud.notifications.connector.v2.http.models.HandledHttpExceptionDetails;
+import com.redhat.cloud.notifications.connector.v2.http.models.HandledHttpMessageDetails;
 import com.redhat.cloud.notifications.connector.v2.models.HandledMessageDetails;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 class HttpOutgoingCloudEventBuilderTest {
@@ -85,7 +87,7 @@ class HttpOutgoingCloudEventBuilderTest {
         assertNotNull(error);
         assertEquals("CONNECTION_REFUSED", error.getString("error_type"));
         // Should not have http_status_code for connection errors
-        assertEquals(null, error.getInteger("http_status_code"));
+        assertNull(error.getInteger("http_status_code"));
     }
 
     @Test
@@ -122,6 +124,121 @@ class HttpOutgoingCloudEventBuilderTest {
         assertEquals("com.redhat.console.notifications.history", metadata.getType());
         assertNotNull(metadata.getSource());
         assertNotNull(metadata.getTimeStamp());
+    }
+
+    @Test
+    void testBuildSuccessWithTargetUrl() {
+        // Given - Success with target URL
+        IncomingCloudEventMetadata<JsonObject> incomingCloudEvent = BaseConnectorIntegrationTest.buildIncomingCloudEvent(
+            "test-http-event-id",
+            "com.redhat.console.notification.toCamel.http",
+            new JsonObject().put("org_id", "12345")
+                .put("endpoint_properties", new JsonObject().put("url", "https://example.com/webhook"))
+                .put("payload", new JsonObject().put("test", "data"))
+        );
+
+        HandledHttpMessageDetails processedMessageDetails = new HandledHttpMessageDetails();
+        processedMessageDetails.targetUrl = "https://example.com/webhook";
+        processedMessageDetails.httpStatus = 200;
+
+        // When
+        Message<String> cloudEventMessage = httpOutgoingCloudEventBuilder.buildSuccess(incomingCloudEvent, processedMessageDetails, System.currentTimeMillis());
+
+        // Then
+        JsonObject data = new JsonObject(cloudEventMessage.getPayload());
+        assertEquals(true, data.getBoolean("successful"));
+
+        JsonObject details = data.getJsonObject("details");
+        assertNotNull(details);
+        assertEquals("https://example.com/webhook", details.getString("target"));
+        assertEquals(200, details.getInteger("http_status_code"));
+    }
+
+    @Test
+    void testBuildSuccessWithTargetUrlOnly() {
+        // Given - Success with only target URL (no HTTP status)
+        IncomingCloudEventMetadata<JsonObject> incomingCloudEvent = BaseConnectorIntegrationTest.buildIncomingCloudEvent(
+            "test-http-event-id",
+            "com.redhat.console.notification.toCamel.http",
+            new JsonObject().put("org_id", "12345")
+                .put("endpoint_properties", new JsonObject().put("url", "https://example.com/webhook"))
+                .put("payload", new JsonObject().put("test", "data"))
+        );
+
+        HandledHttpMessageDetails processedMessageDetails = new HandledHttpMessageDetails();
+        processedMessageDetails.targetUrl = "https://example.com/webhook";
+
+        // When
+        Message<String> cloudEventMessage = httpOutgoingCloudEventBuilder.buildSuccess(incomingCloudEvent, processedMessageDetails, System.currentTimeMillis());
+
+        // Then
+        JsonObject data = new JsonObject(cloudEventMessage.getPayload());
+        assertEquals(true, data.getBoolean("successful"));
+
+        JsonObject details = data.getJsonObject("details");
+        assertNotNull(details);
+        assertEquals("https://example.com/webhook", details.getString("target"));
+        assertNull(details.getInteger("http_status_code"));
+    }
+
+    @Test
+    void testBuildSuccessWithHttpStatusOnly() {
+        // Given - Success with only HTTP status (no target URL)
+        IncomingCloudEventMetadata<JsonObject> incomingCloudEvent = BaseConnectorIntegrationTest.buildIncomingCloudEvent(
+            "test-http-event-id",
+            "com.redhat.console.notification.toCamel.http",
+            new JsonObject().put("org_id", "12345")
+                .put("endpoint_properties", new JsonObject().put("url", "https://example.com/webhook"))
+                .put("payload", new JsonObject().put("test", "data"))
+        );
+
+        HandledHttpMessageDetails processedMessageDetails = new HandledHttpMessageDetails();
+        processedMessageDetails.httpStatus = 200;
+
+        // When
+        Message<String> cloudEventMessage = httpOutgoingCloudEventBuilder.buildSuccess(incomingCloudEvent, processedMessageDetails, System.currentTimeMillis());
+
+        // Then
+        JsonObject data = new JsonObject(cloudEventMessage.getPayload());
+        assertEquals(true, data.getBoolean("successful"));
+
+        JsonObject details = data.getJsonObject("details");
+        assertNotNull(details);
+        assertNull(details.getString("target"));
+        assertEquals(200, details.getInteger("http_status_code"));
+    }
+
+    @Test
+    void testBuildFailureWithTargetUrl() {
+        // Given - Failure with target URL
+        IncomingCloudEventMetadata<JsonObject> incomingCloudEvent = BaseConnectorIntegrationTest.buildIncomingCloudEvent(
+            "test-http-event-id",
+            "com.redhat.console.notification.toCamel.http",
+            new JsonObject().put("org_id", "12345")
+                .put("endpoint_properties", new JsonObject().put("url", "https://example.com/webhook"))
+                .put("payload", new JsonObject().put("test", "data"))
+        );
+
+        HandledHttpExceptionDetails processedExceptionDetails = new HandledHttpExceptionDetails();
+        processedExceptionDetails.targetUrl = "https://example.com/webhook";
+        processedExceptionDetails.httpErrorType = HttpErrorType.HTTP_5XX;
+        processedExceptionDetails.httpStatusCode = 500;
+
+        // When
+        Message<String> cloudEventMessage = httpOutgoingCloudEventBuilder.buildFailure(incomingCloudEvent, processedExceptionDetails, System.currentTimeMillis());
+
+        // Then
+        JsonObject data = new JsonObject(cloudEventMessage.getPayload());
+        assertEquals(false, data.getBoolean("successful"));
+
+        JsonObject details = data.getJsonObject("details");
+        assertNotNull(details);
+        assertEquals("https://example.com/webhook", details.getString("target"));
+
+        JsonObject error = data.getJsonObject("error");
+        assertNotNull(error);
+        assertEquals("HTTP_5XX", error.getString("error_type"));
+        assertEquals(500, error.getInteger("http_status_code"));
     }
 
     private Message<String> getOutgoingCloudEventMessage(HttpErrorType httpErrorType, Integer httpStatusCode) {
