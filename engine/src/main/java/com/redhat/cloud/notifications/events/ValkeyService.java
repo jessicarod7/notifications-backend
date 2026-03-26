@@ -17,7 +17,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ValkeyService {
 
-    private static final String KAFKA_MESSAGE_KEY = "engine:kafka-message:";
+    private static final String EVENT_DEDUPLICATION_KEY = "engine:event-deduplication:";
     private static final String NOT_USED = "";
 
     @ConfigProperty(name = "valkey-service.ttl", defaultValue = "PT24H")
@@ -62,7 +62,7 @@ public class ValkeyService {
      * @return true if the message has not been processed yet
      */
     public boolean isNewMessageId(UUID messageId) {
-        String key = KAFKA_MESSAGE_KEY + messageId;
+        String key = EVENT_DEDUPLICATION_KEY + messageId;
 
         boolean isNew = valkey.setnxAndAwait(key, NOT_USED).toBoolean();
         if (isNew) {
