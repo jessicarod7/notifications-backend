@@ -1,8 +1,13 @@
 package com.redhat.cloud.notifications.events;
 
-import io.quarkus.redis.datasource.RedisDataSource;
-import io.quarkus.redis.datasource.value.ValueCommands;
+import com.redhat.cloud.notifications.config.EngineConfig;
+import io.vertx.mutiny.core.Vertx;
+import io.vertx.mutiny.redis.client.Redis;
+import io.vertx.mutiny.redis.client.RedisAPI;
+import io.vertx.redis.client.RedisOptions;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.Duration;
@@ -18,10 +23,34 @@ public class ValkeyService {
     @ConfigProperty(name = "valkey-service.ttl", defaultValue = "PT24H")
     Duration ttl;
 
-    private final ValueCommands<String, String> kafkaMessageCommands;
+    @ConfigProperty(name = "quarkus.redis.hosts", defaultValue = "")
+    String valkeyHost;
 
-    public ValkeyService(RedisDataSource ds) {
-        kafkaMessageCommands = ds.value(String.class);
+    @ConfigProperty(name = "quarkus.redis.password", defaultValue = "")
+    String valkeyPassword;
+
+    @Inject
+    EngineConfig config;
+
+    @Inject
+    Vertx vertx;
+
+    /** The underlying client connecting to Valkey. */
+    private Redis valkeyClient;
+
+    /** Implementation of the Redis/Valkey API, using {@link #valkeyClient} */
+    private RedisAPI valkey;
+
+    @PostConstruct
+    void initialize() {
+        if (config.isInMemoryDbEnabled()) {
+            RedisOptions valkeyOptions = new RedisOptions().setConnectionString(valkeyHost);
+            if (valkeyPassword != null && valkeyPassword.isEmpty()) {
+                valkeyOptions.setPassword(valkeyPassword);
+            }
+            this.valkeyClient = Redis.createClient(vertx, valkeyOptions);
+            this.valkey = RedisAPI.api(this.valkeyClient);
+        }
     }
 
     /**
@@ -34,9 +63,10 @@ public class ValkeyService {
      */
     public boolean isNewMessageId(UUID messageId) {
         String key = KAFKA_MESSAGE_KEY + messageId;
-        boolean isNew = kafkaMessageCommands.setnx(key, NOT_USED);
+
+        boolean isNew = valkey.setnxAndAwait(key, NOT_USED).toBoolean();
         if (isNew) {
-            kafkaMessageCommands.setex(key, ttl.toSeconds(), NOT_USED);
+            valkey.setexAndForget(key, String.valueOf(ttl.toSeconds()), NOT_USED);
         }
 
         return isNew;
