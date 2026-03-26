@@ -1,6 +1,7 @@
 package com.redhat.cloud.notifications.events;
 
 import com.redhat.cloud.notifications.config.EngineConfig;
+import io.quarkus.logging.Log;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.redis.client.Redis;
 import io.vertx.mutiny.redis.client.RedisAPI;
@@ -11,6 +12,10 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 /** Stores and retrieves data from remote cache (i.e. Valkey). */
@@ -54,19 +59,28 @@ public class ValkeyService {
     }
 
     /**
-     * Verifies that another Kafka consumer didn't already process the given message and then failed to commit its
-     * offset. Such failure can happen when a consumer is kicked out of its consumer group because it didn't poll new
-     * messages fast enough. We experienced that already in production.
+     * Verifies that the event has not been previously processed. The format of saved keys is
+     * {@code engine:event-deduplication:<event_type>:<deduplication_key>}.
      *
-     * @param messageId ID of an incoming message
-     * @return true if the message has not been processed yet
+     * @param eventId only used for debugging
+     * @see com.redhat.cloud.notifications.events.deduplication.EventDeduplicator EventDeduplicator
      */
-    public boolean isNewMessageId(UUID messageId) {
-        String key = EVENT_DEDUPLICATION_KEY + messageId;
+    public boolean isNewEvent(UUID eventTypeId, String deduplicationKey, LocalDateTime deleteAfter, UUID eventId) {
+        String key = String.format("%s:%s:%s", EVENT_DEDUPLICATION_KEY, eventTypeId, deduplicationKey);
+        String deleteAfterIso = deleteAfter.format(DateTimeFormatter.ISO_DATE_TIME);
 
-        boolean isNew = valkey.setnxAndAwait(key, NOT_USED).toBoolean();
+        boolean isNew = valkey.setnxAndAwait(key, deleteAfterIso).toBoolean();
         if (isNew) {
-            valkey.setexAndForget(key, String.valueOf(ttl.toSeconds()), NOT_USED);
+            boolean expireSet = valkey.expireatAndAwait(List.of(
+                    key,
+                    String.valueOf(deleteAfter.toEpochSecond(ZoneOffset.UTC))
+            )).toBoolean();
+
+            if (!expireSet) {
+                // dedup key may include private information, so other fields are used
+                Log.warnf("unable to set expiry for Valkey event deduplication [event_type_id=%s, event_id=%s, delete_after=%s]",
+                        eventTypeId, eventId, deleteAfterIso);
+            }
         }
 
         return isNew;
