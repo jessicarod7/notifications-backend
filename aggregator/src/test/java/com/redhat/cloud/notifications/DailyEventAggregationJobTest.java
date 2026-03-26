@@ -10,6 +10,7 @@ import com.redhat.cloud.notifications.models.AggregationCommand;
 import com.redhat.cloud.notifications.models.AggregationOrgConfig;
 import com.redhat.cloud.notifications.models.Application;
 import com.redhat.cloud.notifications.models.EventAggregationCriterion;
+import com.redhat.cloud.notifications.models.EventType;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -464,6 +465,52 @@ class DailyEventAggregationJobTest {
         final List<AggregationCommand> emailAggregations = dailyEmailAggregationJob.processAggregateEmailsWithOrgPref(dailyEmailAggregationJob.computeScheduleExecutionTime(), new CollectorRegistry());
 
         assertEquals(0, emailAggregations.size());
+    }
+
+    @Test
+    void shouldSkipAggregationsWhenNoSubscribersExist() {
+        // Create events without subscriptions
+        String orgId = "noSubscriberOrgId";
+        String bundleName = "test-bundle";
+        String applicationName = "test-app";
+
+        // Create the infrastructure (bundle, app, event type) but no subscription
+        helpers.findOrCreateBundle(bundleName);
+        Application application = helpers.findOrCreateApplication(bundleName, applicationName);
+        EventType eventType = helpers.findOrCreateEventType(application.getId(), "event_type_no_subscription");
+
+        // Create email endpoint linked to event type (required by query)
+        helpers.getOrCreateEmailEndpointAndLinkItToEventType(orgId, eventType, false);
+
+        // Create events WITHOUT creating subscriptions
+        com.redhat.cloud.notifications.models.Event event1 = new com.redhat.cloud.notifications.models.Event();
+        event1.setOrgId(orgId);
+        eventType.setApplication(application);
+        event1.setEventType(eventType);
+        event1.setCreated(LocalDateTime.now(UTC).minusHours(5));
+        event1.setPayload("{\"test\":\"payload1\"}");
+        helpers.createEvent(event1);
+
+        com.redhat.cloud.notifications.models.Event event2 = new com.redhat.cloud.notifications.models.Event();
+        event2.setOrgId(orgId);
+        eventType.setApplication(application);
+        event2.setEventType(eventType);
+        event2.setCreated(LocalDateTime.now(UTC).minusHours(3));
+        event2.setPayload("{\"test\":\"payload2\"}");
+        helpers.createEvent(event2);
+
+        // Add org config to ensure the org would be processed if subscribers existed
+        AggregationOrgConfig noSubscriberOrgConfig = new AggregationOrgConfig(orgId,
+            dailyEmailAggregationJob.computeScheduleExecutionTime().toLocalTime(),
+            dailyEmailAggregationJob.computeScheduleExecutionTime().minusDays(1));
+        helpers.addAggregationOrgConfig(noSubscriberOrgConfig);
+
+        // Process aggregations
+        final List<AggregationCommand> emailAggregations = dailyEmailAggregationJob.processAggregateEmailsWithOrgPref(
+            dailyEmailAggregationJob.computeScheduleExecutionTime(), new CollectorRegistry());
+
+        // Verify that 0 aggregation commands are returned since no subscribers exist
+        assertEquals(0, emailAggregations.size(), "Aggregations should be skipped when no subscribers exist");
     }
 
     @Test

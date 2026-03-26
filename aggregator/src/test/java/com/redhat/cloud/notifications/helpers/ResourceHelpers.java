@@ -1,6 +1,5 @@
 package com.redhat.cloud.notifications.helpers;
 
-import com.redhat.cloud.notifications.models.AggregationEmailTemplate;
 import com.redhat.cloud.notifications.models.AggregationOrgConfig;
 import com.redhat.cloud.notifications.models.Application;
 import com.redhat.cloud.notifications.models.Endpoint;
@@ -8,7 +7,6 @@ import com.redhat.cloud.notifications.models.EndpointType;
 import com.redhat.cloud.notifications.models.Event;
 import com.redhat.cloud.notifications.models.EventType;
 import com.redhat.cloud.notifications.models.SubscriptionType;
-import com.redhat.cloud.notifications.models.Template;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -87,34 +85,6 @@ public class ResourceHelpers extends com.redhat.cloud.notifications.models.Resou
         return entityManager.merge(emailEndpoint);
     }
 
-    @Transactional
-    public AggregationEmailTemplate getOrCreateAggregationTemplate(Application application) {
-        try {
-            String query = "FROM AggregationEmailTemplate WHERE application.id = :appId";
-            return entityManager.createQuery(query, AggregationEmailTemplate.class)
-                .setParameter("appId", application.getId())
-                .getSingleResult();
-        } catch (NoResultException e) {
-            Template emailTemplate = new Template();
-            emailTemplate.setName(RandomStringUtils.randomAlphabetic(10));
-            emailTemplate.setData(RandomStringUtils.randomAlphabetic(10));
-            emailTemplate.setDescription(RandomStringUtils.randomAlphabetic(10));
-            entityManager.persist(emailTemplate);
-
-            AggregationEmailTemplate aggregationEmailTemplate = new AggregationEmailTemplate();
-            aggregationEmailTemplate.setApplication(application);
-            aggregationEmailTemplate.setApplicationId(application.getId());
-            aggregationEmailTemplate.setSubscriptionType(SubscriptionType.DAILY);
-            aggregationEmailTemplate.setBodyTemplate(emailTemplate);
-            aggregationEmailTemplate.setBodyTemplateId(emailTemplate.getId());
-            aggregationEmailTemplate.setSubjectTemplate(emailTemplate);
-            aggregationEmailTemplate.setSubjectTemplateId(emailTemplate.getId());
-            aggregationEmailTemplate.setApplication(application);
-            entityManager.persist(aggregationEmailTemplate);
-            return aggregationEmailTemplate;
-        }
-    }
-
     public Event addEventEmailAggregation(String orgId, String bundleName, String applicationName, LocalDateTime created, String eventPayload, boolean useSystemEndpoint) {
         findOrCreateBundle(bundleName);
         Application application = findOrCreateApplication(bundleName, applicationName);
@@ -122,7 +92,6 @@ public class ResourceHelpers extends com.redhat.cloud.notifications.models.Resou
         findOrCreateEventTypeEmailSubscription(orgId, "obiwan", eventType, SubscriptionType.DAILY);
 
         getOrCreateEmailEndpointAndLinkItToEventType(orgId, eventType, useSystemEndpoint);
-        getOrCreateAggregationTemplate(application);
 
         Event event = new Event();
         event.setOrgId(orgId);
