@@ -58,7 +58,7 @@ public class EngineConfig {
     private String drawerToggle;
     private String exportServiceHccClusterToggle;
     private String kafkaConsumedTotalCheckerToggle;
-    private String valkeyKafkaMessageDeduplicatorToggle;
+    private String valkeyEventDeduplicatorToggle;
     private String toggleBlacklistedEndpoints;
     private String toggleBlacklistedEventTypes;
     private String toggleKafkaOutgoingHighVolumeTopic;
@@ -172,7 +172,7 @@ public class EngineConfig {
         drawerToggle = toggleRegistry.register("drawer", true);
         exportServiceHccClusterToggle = toggleRegistry.register("export-service-hcc-cluster", true);
         kafkaConsumedTotalCheckerToggle = toggleRegistry.register("kafka-consumed-total-checker", true);
-        valkeyKafkaMessageDeduplicatorToggle = toggleRegistry.register("valkey-kafka-message-deduplicator", true);
+        valkeyEventDeduplicatorToggle = toggleRegistry.register("valkey-event-deduplicator", true);
         toggleKafkaOutgoingHighVolumeTopic = toggleRegistry.register("kafka-outgoing-high-volume-topic", true);
         toggleBlacklistedEndpoints = toggleRegistry.register("blacklisted-endpoints", true);
         toggleBlacklistedEventTypes = toggleRegistry.register("blacklisted-event-types", true);
@@ -209,7 +209,7 @@ public class EngineConfig {
         config.put(asyncEventProcessingToggle, isAsyncEventProcessing());
         config.put(toggleIncludeSeverityToFilterRecipients, isIncludeSeverityToFilterRecipientsEnabled(""));
         config.put(toggleSkipProcessingMessagesOnReplayService, isSkipMessageProcessing());
-        config.put(valkeyKafkaMessageDeduplicatorToggle, isValkeyKafkaMessageDeduplicatorEnabled());
+        config.put(valkeyEventDeduplicatorToggle, isValkeyEventDeduplicatorEnabled());
         config.put(IN_MEMORY_DB_ENABLED, isInMemoryDbEnabled());
 
         Log.info("=== Startup configuration ===");
@@ -391,9 +391,9 @@ public class EngineConfig {
         }
     }
 
-    public boolean isValkeyKafkaMessageDeduplicatorEnabled() {
+    public boolean isValkeyEventDeduplicatorEnabled() {
         if (unleashEnabled) {
-            return this.unleash.isEnabled(this.valkeyKafkaMessageDeduplicatorToggle, false);
+            return this.unleash.isEnabled(this.valkeyEventDeduplicatorToggle, false);
         } else {
             return false;
         }
