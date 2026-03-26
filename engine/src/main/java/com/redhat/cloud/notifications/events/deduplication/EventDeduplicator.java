@@ -1,12 +1,16 @@
 package com.redhat.cloud.notifications.events.deduplication;
 
+import com.redhat.cloud.notifications.config.EngineConfig;
+import com.redhat.cloud.notifications.events.ValkeyService;
 import com.redhat.cloud.notifications.models.Event;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 @ApplicationScoped
 public class EventDeduplicator {
@@ -20,6 +24,12 @@ public class EventDeduplicator {
 
     @Inject
     SubscriptionsDeduplicationConfig subscriptionsDeduplicationConfig;
+
+    @Inject
+    EngineConfig engineConfig;
+
+    @Inject
+    ValkeyService valkeyService;
 
     private EventDeduplicationConfig getEventDeduplicationConfig(Event event) {
         return switch (event.getEventType().getApplication().getBundle().getName()) {
@@ -43,15 +53,22 @@ public class EventDeduplicator {
             return true;
         }
 
-        String sql = "INSERT INTO event_deduplication(event_type_id, deduplication_key, delete_after) " +
-                "VALUES (:eventTypeId, :deduplicationKey, :deleteAfter) " +
-                "ON CONFLICT (event_type_id, deduplication_key) DO NOTHING";
+        UUID eventTypeId = event.getEventType().getId();
+        LocalDateTime deleteAfter = eventDeduplicationConfig.getDeleteAfter(event);
 
-        int rowCount = entityManager.createNativeQuery(sql)
-                .setParameter("eventTypeId", event.getEventType().getId())
-                .setParameter("deduplicationKey", deduplicationKey.get())
-                .setParameter("deleteAfter", eventDeduplicationConfig.getDeleteAfter(event))
-                .executeUpdate();
-        return rowCount > 0;
+        if (engineConfig.isValkeyEventDeduplicatorEnabled()) {
+            return valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(), deleteAfter, event.getId());
+        } else {
+            String sql = "INSERT INTO event_deduplication(event_type_id, deduplication_key, delete_after) " +
+                    "VALUES (:eventTypeId, :deduplicationKey, :deleteAfter) " +
+                    "ON CONFLICT (event_type_id, deduplication_key) DO NOTHING";
+
+            int rowCount = entityManager.createNativeQuery(sql)
+                    .setParameter("eventTypeId", eventTypeId)
+                    .setParameter("deduplicationKey", deduplicationKey.get())
+                    .setParameter("deleteAfter", deleteAfter)
+                    .executeUpdate();
+            return rowCount > 0;
+        }
     }
 }
