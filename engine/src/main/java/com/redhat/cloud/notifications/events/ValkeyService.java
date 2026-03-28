@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /** Stores and retrieves data from remote cache (i.e. Valkey). */
@@ -29,10 +30,10 @@ public class ValkeyService {
     Duration ttl;
 
     @ConfigProperty(name = "quarkus.redis.hosts", defaultValue = "")
-    String valkeyHost;
+    Optional<String> valkeyHost;
 
     @ConfigProperty(name = "quarkus.redis.password", defaultValue = "")
-    String valkeyPassword;
+    Optional<String> valkeyPassword;
 
     @Inject
     EngineConfig config;
@@ -49,12 +50,15 @@ public class ValkeyService {
     @PostConstruct
     void initialize() {
         if (config.isInMemoryDbEnabled()) {
-            RedisOptions valkeyOptions = new RedisOptions().setConnectionString(valkeyHost);
-            if (valkeyPassword != null && valkeyPassword.isEmpty()) {
-                valkeyOptions.setPassword(valkeyPassword);
+            if (valkeyHost.isEmpty() || valkeyHost.get().isEmpty()) {
+                Log.warn("In-memory DB enabled, but Valkey connection string was not provided");
+            } else {
+                RedisOptions valkeyOptions = new RedisOptions().setConnectionString(valkeyHost.get());
+                valkeyPassword.ifPresent(valkeyOptions::setPassword);
+
+                this.valkeyClient = Redis.createClient(vertx, valkeyOptions);
+                this.valkey = RedisAPI.api(this.valkeyClient);
             }
-            this.valkeyClient = Redis.createClient(vertx, valkeyOptions);
-            this.valkey = RedisAPI.api(this.valkeyClient);
         }
     }
 
