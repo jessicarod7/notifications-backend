@@ -28,6 +28,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.redhat.cloud.notifications.MockServerLifecycleManager.getClient;
+import static com.redhat.cloud.notifications.connector.v2.MessageConsumer.FAILED_COUNTER_NAME;
+import static com.redhat.cloud.notifications.connector.v2.MessageConsumer.HANDLER_DURATION_TIMER_NAME;
+import static com.redhat.cloud.notifications.connector.v2.MessageConsumer.SUCCEEDED_COUNTER_NAME;
 import static com.redhat.cloud.notifications.connector.v2.MessageConsumer.X_RH_NOTIFICATIONS_CONNECTOR_HEADER;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -209,18 +212,24 @@ public abstract class BaseConnectorIntegrationTest {
      */
     protected void saveConnectorMetrics() {
         // Save metrics that we want to track
-        micrometerAssertionHelper.saveCounterValueFilteredByTagsBeforeTest("connector.messages.processed", "connector", connectorConfig.getConnectorName());
-        micrometerAssertionHelper.saveCounterValueFilteredByTagsBeforeTest("connector.messages.succeeded", "connector", connectorConfig.getConnectorName());
-        micrometerAssertionHelper.saveCounterValueFilteredByTagsBeforeTest("connector.messages.failed", "connector", connectorConfig.getConnectorName());
+        micrometerAssertionHelper.saveCounterValueFilteredByTagsBeforeTest(SUCCEEDED_COUNTER_NAME, "connector", connectorConfig.getConnectorName());
+        micrometerAssertionHelper.saveCounterValueFilteredByTagsBeforeTest(FAILED_COUNTER_NAME, "connector", connectorConfig.getConnectorName());
+        micrometerAssertionHelper.saveTimerCountFilteredByTagsBeforeTest(HANDLER_DURATION_TIMER_NAME, "connector", connectorConfig.getConnectorName());
     }
 
     /**
      * Asserts metrics changes
      */
-    protected void assertMetricsIncrement(double expectedProcessed, double expectedSucceeded, double expectedFailed) {
-        micrometerAssertionHelper.assertCounterValueFilteredByTagsIncrement("connector.messages.processed", "connector", connectorConfig.getConnectorName(), expectedProcessed);
-        micrometerAssertionHelper.assertCounterValueFilteredByTagsIncrement("connector.messages.succeeded", "connector", connectorConfig.getConnectorName(), expectedSucceeded);
-        micrometerAssertionHelper.assertCounterValueFilteredByTagsIncrement("connector.messages.failed", "connector", connectorConfig.getConnectorName(), expectedFailed);
+    protected void assertMetricsIncrement(double expectedSucceeded, double expectedFailed) {
+        micrometerAssertionHelper.assertCounterValueFilteredByTagsIncrement(SUCCEEDED_COUNTER_NAME, "connector", connectorConfig.getConnectorName(), expectedSucceeded);
+        micrometerAssertionHelper.assertCounterValueFilteredByTagsIncrement(FAILED_COUNTER_NAME, "connector", connectorConfig.getConnectorName(), expectedFailed);
+    }
+
+    /**
+     * Asserts handler duration timer was recorded
+     */
+    protected void assertHandlerDurationTimerRecorded(long expectedCount) {
+        micrometerAssertionHelper.awaitAndAssertTimerCountFilteredByTagsIncrement(HANDLER_DURATION_TIMER_NAME, "connector", connectorConfig.getConnectorName(), expectedCount);
     }
 
     public static IncomingCloudEventMetadata<JsonObject> buildIncomingCloudEvent(String cloudEventId, String cloudEventType, JsonObject cloudEventData) {

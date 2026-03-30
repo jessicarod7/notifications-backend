@@ -33,6 +33,7 @@ public class MicrometerAssertionHelper {
     MeterRegistry registry;
 
     private final Map<String, Double> counterValuesBeforeTest = new ConcurrentHashMap<>();
+    private final Map<String, Long> timerCountsBeforeTest = new ConcurrentHashMap<>();
 
     public void saveCounterValuesBeforeTest(String... counterNames) {
         for (String counterName : counterNames) {
@@ -110,6 +111,23 @@ public class MicrometerAssertionHelper {
         });
     }
 
+    public void saveTimerCountFilteredByTagsBeforeTest(String timerName, String tagKey, String tagValue) {
+        Timer timer = registry.find(timerName).tag(tagKey, tagValue).timer();
+        timerCountsBeforeTest.put(timerName + tagKey + tagValue, timer != null ? timer.count() : 0L);
+    }
+
+    public void awaitAndAssertTimerCountFilteredByTagsIncrement(String timerName, String tagKey, String tagValue, long expectedIncrement) {
+        await().atMost(Duration.ofSeconds(30L)).until(() -> {
+            Timer timer = registry.find(timerName).tag(tagKey, tagValue).timer();
+            if (timer == null) {
+                return expectedIncrement == 0;
+            } else {
+                long actualIncrement = timer.count() - timerCountsBeforeTest.getOrDefault(timerName + tagKey + tagValue, 0L);
+                return expectedIncrement == actualIncrement;
+            }
+        });
+    }
+
     public void awaitAndAssertTimerIncrement(String timerName, long expectedIncrement) {
         await().atMost(Duration.ofSeconds(30L)).until(() -> {
             Timer timer = findTimerByNameOnly(timerName);
@@ -125,6 +143,7 @@ public class MicrometerAssertionHelper {
 
     public void clearSavedValues() {
         counterValuesBeforeTest.clear();
+        timerCountsBeforeTest.clear();
     }
 
     public void removeDynamicTimer(String timerName) {
