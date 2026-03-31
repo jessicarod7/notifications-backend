@@ -19,6 +19,8 @@ import com.redhat.cloud.notifications.models.Event;
 import com.redhat.cloud.notifications.models.EventType;
 import com.redhat.cloud.notifications.models.NotificationHistory;
 import com.redhat.cloud.notifications.models.SystemSubscriptionProperties;
+import com.redhat.cloud.notifications.qute.templates.TemplateDefinition;
+import com.redhat.cloud.notifications.qute.templates.TemplateService;
 import com.redhat.cloud.notifications.recipients.User;
 import com.redhat.cloud.notifications.recipients.recipientsresolver.ExternalRecipientsResolver;
 import io.quarkus.test.InjectMock;
@@ -47,6 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -77,6 +80,9 @@ class DrawerProcessorTest {
     @InjectMock
     EngineConfig engineConfig;
 
+    @InjectSpy
+    TemplateService templateService;
+
     @Inject
     @Any
     InMemoryConnector inMemoryConnector;
@@ -100,6 +106,24 @@ class DrawerProcessorTest {
         verify(drawerNotificationRepository, never()).create(any(Event.class), any(String.class));
     }
 
+
+    @Test
+    void shouldNotProcessWhenIncludeInDrawerIsFalse() {
+        Event createdEvent = createEvent(false);
+
+        Endpoint endpoint = new Endpoint();
+        endpoint.setProperties(new SystemSubscriptionProperties());
+        endpoint.setType(EndpointType.DRAWER);
+
+        when(engineConfig.isDrawerEnabled()).thenReturn(true);
+        testee.process(createdEvent, List.of(endpoint));
+
+        verify(drawerNotificationRepository, never()).create(any(Event.class), any(String.class));
+        verify(templateService, never()).renderTemplateWithCustomDataMap(any(TemplateDefinition.class), anyMap());
+
+        deleteEvent(createdEvent);
+    }
+
     @Test
     void shouldCreateTwoDrawerNotifications() {
         User user1 = new User();
@@ -112,7 +136,7 @@ class DrawerProcessorTest {
         when(externalRecipientsResolver.recipientUsers(any(), any(), any(), any(), eq(true), any(RecipientsAuthorizationCriterion.class)))
                 .thenReturn(Set.of(user1, user2));
 
-        Event createdEvent = createEvent();
+        Event createdEvent = createEvent(true);
 
         Endpoint endpoint = new Endpoint();
         endpoint.setProperties(new SystemSubscriptionProperties());
@@ -147,10 +171,11 @@ class DrawerProcessorTest {
     }
 
     @Transactional
-    Event createEvent() {
+    Event createEvent(boolean includedInDrawer) {
         Bundle createdBundle = resourceHelpers.createBundle("test-drawer-engine-event-bundle");
         Application createdApplication = resourceHelpers.createApp(createdBundle.getId(), "test-drawer-engine-event-application");
         EventType createdEventType = resourceHelpers.createEventType(createdApplication.getId(), "test-drawer-engine-event-type");
+        createdEventType.setIncludedInDrawer(includedInDrawer);
         Event createdEvent = new Event();
         createdEvent.setEventType(createdEventType);
         createdEvent.setEventWrapper(new EventWrapperAction(
