@@ -56,7 +56,7 @@ public class EventDeduplicator {
         UUID eventTypeId = event.getEventType().getId();
         LocalDateTime deleteAfter = eventDeduplicationConfig.getDeleteAfter(event);
 
-        if (engineConfig.isValkeyEventDeduplicatorEnabled()) {
+        if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
             return valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(), deleteAfter, event.getId());
         } else {
             String sql = "INSERT INTO event_deduplication(event_type_id, deduplication_key, delete_after) " +

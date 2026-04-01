@@ -23,7 +23,7 @@ import java.util.UUID;
 @ApplicationScoped
 public class ValkeyService {
 
-    private static final String EVENT_DEDUPLICATION_KEY = "engine:event-deduplication:";
+    private static final String EVENT_DEDUPLICATION_KEY = "engine:event-deduplication";
     private static final String NOT_USED = "";
 
     @ConfigProperty(name = "valkey-service.ttl", defaultValue = "PT24H")
