@@ -56,14 +56,14 @@ class EventDeduplicatorTest {
     @Transactional
     void afterEach() {
         entityManager
-                .createNativeQuery("DELETE FROM bundles WHERE name = :testName OR name = :subName")
-                .setParameter("testName", TEST_BUNDLE_NAME)
-                .setParameter("subName", SUBSCRIPTION_SERVICES_BUNDLE_NAME)
-                .executeUpdate();
-        entityManager
                 .createNativeQuery("DELETE FROM applications WHERE name = :testName OR name = :subName")
                 .setParameter("testName", TEST_APP_NAME)
                 .setParameter("subName", SUBSCRIPTIONS_APP_NAME)
+                .executeUpdate();
+        entityManager
+                .createNativeQuery("DELETE FROM bundles WHERE name = :testName OR name = :subName")
+                .setParameter("testName", TEST_BUNDLE_NAME)
+                .setParameter("subName", SUBSCRIPTION_SERVICES_BUNDLE_NAME)
                 .executeUpdate();
     }
 
@@ -71,6 +71,7 @@ class EventDeduplicatorTest {
     @ValueSource(booleans = {true, false})
     void testIsNewWithDefaultDeduplication(final boolean valkeyDedupEnabled) {
         when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(valkeyDedupEnabled);
+        when(config.isInMemoryDbEnabled()).thenReturn(valkeyDedupEnabled);
 
         EventType eventType = createEventType(TEST_BUNDLE_NAME, TEST_APP_NAME);
         LocalDateTime dateTime = LocalDateTime.now(UTC_ZONE);
@@ -103,6 +104,7 @@ class EventDeduplicatorTest {
     @ValueSource(booleans = {true, false})
     void testIsNewWithSubscriptionsDeduplication(final boolean valkeyDedupEnabled) {
         when(config.isValkeyEventDeduplicatorEnabled()).thenReturn(valkeyDedupEnabled);
+        when(config.isInMemoryDbEnabled()).thenReturn(valkeyDedupEnabled);
 
         EventType eventType = createEventType(SUBSCRIPTION_SERVICES_BUNDLE_NAME, SUBSCRIPTIONS_APP_NAME);
         LocalDateTime baseDateTime =

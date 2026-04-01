@@ -24,7 +24,6 @@ import java.util.UUID;
 public class ValkeyService {
 
     private static final String EVENT_DEDUPLICATION_KEY = "engine:event-deduplication";
-    private static final String NOT_USED = "";
 
     @ConfigProperty(name = "valkey-service.ttl", defaultValue = "PT24H")
     Duration ttl;
@@ -51,7 +50,7 @@ public class ValkeyService {
     void initialize() {
         if (config.isInMemoryDbEnabled()) {
             if (valkeyHost.isEmpty() || valkeyHost.get().isEmpty()) {
-                Log.warn("In-memory DB enabled, but Valkey connection string was not provided");
+                throw new IllegalStateException("In-memory DB enabled, but Valkey connection string was not provided");
             } else {
                 RedisOptions valkeyOptions = new RedisOptions().setConnectionString(valkeyHost.get());
                 valkeyPassword.ifPresent(valkeyOptions::setPassword);
