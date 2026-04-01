@@ -64,6 +64,9 @@ public class TestLifecycleManager implements QuarkusTestResourceLifecycleManager
         if (quarkusDatasourceDevServiceEnabled) {
             postgreSQLContainer.stop();
         }
+        if (quarkusValkeyDevServiceEnabled) {
+            valkeyContainer.stop();
+        }
         MockServerLifecycleManager.stop();
         InMemoryConnector.clear();
     }
