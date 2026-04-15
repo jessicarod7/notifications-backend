@@ -6859,9 +6859,9 @@ data:
         "exemplar": false,
         "expr": "sum(increase(camel_exchanges_succeeded_total{service=\"notifications-connector-microsoft-teams-service\", routeId=\"success\"}[5m]))",
         "instant": false,
-        "legendFormat": "Success",
+        "legendFormat": "Success (old)",
         "range": true,
-        "refId": "Success"
+        "refId": "Success Camel"
        },
        {
         "datasource": {
@@ -6872,9 +6872,9 @@ data:
         "expr": "sum(increase(camel_exchanges_failures_handled_total{service=\"notifications-connector-microsoft-teams-service\", routeId=\"teams\"}[5m]))",
         "hide": false,
         "interval": "",
-        "legendFormat": "Failure",
+        "legendFormat": "Failure (old)",
         "range": true,
-        "refId": "Failure"
+        "refId": "Failure Camel"
        },
        {
         "datasource": {
@@ -6890,6 +6890,32 @@ data:
         "legendFormat": "Retry",
         "range": true,
         "refId": "Retry"
+       },
+       {
+        "datasource": {
+         "uid": "$datasource"
+        },
+        "editorMode": "code",
+        "exemplar": false,
+        "expr": "sum(increase(notifications_connector_messages_succeeded_total{connector=\"teams\"}[5m]))",
+        "hide": false,
+        "instant": false,
+        "legendFormat": "Success",
+        "range": true,
+        "refId": "Success"
+       },
+       {
+        "datasource": {
+         "type": "prometheus",
+         "uid": "$datasource"
+        },
+        "editorMode": "code",
+        "expr": "sum(increase(notifications_connector_messages_failed_total{connector=\"teams\"}[5m]))",
+        "hide": false,
+        "interval": "",
+        "legendFormat": "Failure",
+        "range": true,
+        "refId": "Failure"
        }
       ],
       "title": "Microsoft Teams",
@@ -7205,9 +7231,9 @@ data:
         "exemplar": false,
         "expr": "sum(increase(camel_exchanges_succeeded_total{service=\"notifications-connector-slack-service\", routeId=\"slack\"}[5m]))",
         "instant": false,
-        "legendFormat": "Success",
+        "legendFormat": "Success (old)",
         "range": true,
-        "refId": "Success"
+        "refId": "Success camel"
        },
        {
         "datasource": {
@@ -7218,9 +7244,9 @@ data:
         "expr": "sum(increase(camel_exchanges_failures_handled_total{service=\"notifications-connector-slack-service\", routeId=\"slack\"}[5m]))",
         "hide": false,
         "interval": "",
-        "legendFormat": "Failure",
+        "legendFormat": "Failure (old)",
         "range": true,
-        "refId": "Failure"
+        "refId": "Failure Camel"
        },
        {
         "datasource": {
@@ -7236,6 +7262,32 @@ data:
         "legendFormat": "Retry",
         "range": true,
         "refId": "Retry"
+       },
+       {
+        "datasource": {
+         "uid": "$datasource"
+        },
+        "editorMode": "code",
+        "exemplar": false,
+        "expr": "sum(increase(notifications_connector_messages_succeeded_total{connector=\"slack\"}[5m]))",
+        "hide": false,
+        "instant": false,
+        "legendFormat": "Success",
+        "range": true,
+        "refId": "Success"
+       },
+       {
+        "datasource": {
+         "type": "prometheus",
+         "uid": "$datasource"
+        },
+        "editorMode": "code",
+        "expr": "sum(increase(notifications_connector_messages_failed_total{connector=\"slack\"}[5m]))",
+        "hide": false,
+        "interval": "",
+        "legendFormat": "Failure",
+        "range": true,
+        "refId": "Failure"
        }
       ],
       "title": "Slack",
@@ -9122,7 +9174,23 @@ data:
         },
         "unit": "short"
        },
-       "overrides": []
+       "overrides": [
+        {
+         "matcher": {
+          "id": "byName",
+          "options": "rbac"
+         },
+         "properties": [
+          {
+           "id": "color",
+           "value": {
+            "fixedColor": "red",
+            "mode": "fixed"
+           }
+          }
+         ]
+        }
+       ]
       },
       "gridPos": {
        "h": 8,
@@ -10309,7 +10377,7 @@ data:
     "timezone": "",
     "title": "Notifications Dashboard",
     "uid": "KQIVyFuMk",
-    "version": 3
+    "version": 4
    }
 kind: ConfigMap
 metadata:
