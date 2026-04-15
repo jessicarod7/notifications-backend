@@ -87,7 +87,11 @@ public class ValkeyService {
         ));
 
         try {
-            isNew = valkeyResp.toString().equals("OK");
+            if (valkeyResp == null) {
+                isNew = false;
+            } else {
+                isNew = valkeyResp.toString().equals("OK");
+            }
         } catch (Exception ignored) {
             // Invalid response could not be mapped to string. Assume event is new
             // dedup key may include private information, so other fields are used
