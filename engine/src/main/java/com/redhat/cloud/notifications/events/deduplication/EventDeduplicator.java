@@ -3,6 +3,7 @@ package com.redhat.cloud.notifications.events.deduplication;
 import com.redhat.cloud.notifications.config.EngineConfig;
 import com.redhat.cloud.notifications.events.ValkeyService;
 import com.redhat.cloud.notifications.models.Event;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -31,7 +32,7 @@ public class EventDeduplicator {
     @Inject
     ValkeyService valkeyService;
 
-    private EventDeduplicationConfig getEventDeduplicationConfig(Event event) {
+    public EventDeduplicationConfig getEventDeduplicationConfig(Event event) {
         return switch (event.getEventType().getApplication().getBundle().getName()) {
             case SUBSCRIPTION_SERVICES_BUNDLE ->
                 switch (event.getEventType().getApplication().getName()) {
@@ -57,18 +58,32 @@ public class EventDeduplicator {
         LocalDateTime deleteAfter = eventDeduplicationConfig.getDeleteAfter(event);
 
         if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
-            return valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(), deleteAfter, event.getId());
-        } else {
-            String sql = "INSERT INTO event_deduplication(event_type_id, deduplication_key, delete_after) " +
-                    "VALUES (:eventTypeId, :deduplicationKey, :deleteAfter) " +
-                    "ON CONFLICT (event_type_id, deduplication_key) DO NOTHING";
+            boolean isNewEvent = postgresEventDeduplication(eventTypeId, deduplicationKey, deleteAfter);
+            boolean valkeyIsNewEvent = valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(),
+                    deleteAfter, event.getId());
+            if (valkeyIsNewEvent != isNewEvent) {
+                Log.warnf(
+                        "Valkey event deduplication (isNewEvent=%s) does not align with Postgres result (isNewEvent=%s) [event_type_id=%s, event_id=%s]",
+                        valkeyIsNewEvent, isNewEvent, eventTypeId, event.getId());
+            }
 
-            int rowCount = entityManager.createNativeQuery(sql)
-                    .setParameter("eventTypeId", eventTypeId)
-                    .setParameter("deduplicationKey", deduplicationKey.get())
-                    .setParameter("deleteAfter", deleteAfter)
-                    .executeUpdate();
-            return rowCount > 0;
+            return isNewEvent;
+
+        } else {
+            return postgresEventDeduplication(eventTypeId, deduplicationKey, deleteAfter);
         }
+    }
+
+    private boolean postgresEventDeduplication(UUID eventTypeId, Optional<String> deduplicationKey, LocalDateTime deleteAfter) {
+        String sql = "INSERT INTO event_deduplication(event_type_id, deduplication_key, delete_after) " +
+                "VALUES (:eventTypeId, :deduplicationKey, :deleteAfter) " +
+                "ON CONFLICT (event_type_id, deduplication_key) DO NOTHING";
+
+        int rowCount = entityManager.createNativeQuery(sql)
+                .setParameter("eventTypeId", eventTypeId)
+                .setParameter("deduplicationKey", deduplicationKey.get())
+                .setParameter("deleteAfter", deleteAfter)
+                .executeUpdate();
+        return rowCount > 0;
     }
 }

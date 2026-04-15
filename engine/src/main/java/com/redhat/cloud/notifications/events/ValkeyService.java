@@ -5,6 +5,7 @@ import io.quarkus.logging.Log;
 import io.vertx.mutiny.core.Vertx;
 import io.vertx.mutiny.redis.client.Redis;
 import io.vertx.mutiny.redis.client.RedisAPI;
+import io.vertx.mutiny.redis.client.Response;
 import io.vertx.redis.client.RedisOptions;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -52,13 +53,17 @@ public class ValkeyService {
             if (valkeyHost.isEmpty() || valkeyHost.get().isEmpty()) {
                 throw new IllegalStateException("In-memory DB enabled, but Valkey connection string was not provided");
             } else {
-                RedisOptions valkeyOptions = new RedisOptions().setConnectionString(valkeyHost.get());
+                RedisOptions valkeyOptions = new RedisOptions().setConnectionString(valkeyHost.get().replace("valkey://", "redis://"));
                 valkeyPassword.ifPresent(valkeyOptions::setPassword);
 
                 this.valkeyClient = Redis.createClient(vertx, valkeyOptions);
                 this.valkey = RedisAPI.api(this.valkeyClient);
             }
         }
+    }
+
+    public static String formatDeduplicationKey(UUID eventTypeId, String deduplicationKey) {
+        return String.format("%s:%s:%s", EVENT_DEDUPLICATION_KEY, eventTypeId, deduplicationKey);
     }
 
     /**
@@ -69,23 +74,33 @@ public class ValkeyService {
      * @see com.redhat.cloud.notifications.events.deduplication.EventDeduplicator EventDeduplicator
      */
     public boolean isNewEvent(UUID eventTypeId, String deduplicationKey, LocalDateTime deleteAfter, UUID eventId) {
-        String key = String.format("%s:%s:%s", EVENT_DEDUPLICATION_KEY, eventTypeId, deduplicationKey);
+        String key = formatDeduplicationKey(eventTypeId, deduplicationKey);
         String deleteAfterIso = deleteAfter.format(DateTimeFormatter.ISO_DATE_TIME);
+        boolean isNew;
 
-        boolean isNew = valkey.setnxAndAwait(key, deleteAfterIso).toBoolean();
-        if (isNew) {
-            boolean expireSet = valkey.expireatAndAwait(List.of(
-                    key,
-                    String.valueOf(deleteAfter.toEpochSecond(ZoneOffset.UTC))
-            )).toBoolean();
+        Response valkeyResp = valkey.setAndAwait(List.of(
+                key,
+                deleteAfterIso,
+                "NX",
+                "EXAT",
+                String.valueOf(deleteAfter.toEpochSecond(ZoneOffset.UTC))
+        ));
 
-            if (!expireSet) {
-                // dedup key may include private information, so other fields are used
-                Log.warnf("unable to set expiry for Valkey event deduplication [event_type_id=%s, event_id=%s, delete_after=%s]",
-                        eventTypeId, eventId, deleteAfterIso);
-            }
+        try {
+            isNew = valkeyResp.toString().equals("OK");
+        } catch (Exception ignored) {
+            // Invalid response could not be mapped to string. Assume event is new
+            // dedup key may include private information, so other fields are used
+            Log.warnf("unable to check for duplicate event in Valkey [event_type_id=%s, event_id=%s, delete_after=%s]",
+                    eventTypeId, eventId, deleteAfterIso);
+            isNew = true;
         }
 
         return isNew;
+    }
+
+    /** This method should only be called to remove a key that may have been inserted by {@link #isNewEvent(UUID, String, LocalDateTime, UUID)} */
+    public boolean removeEventFromDeduplication(String key) {
+        return valkey.delAndAwait(List.of(key)).toBoolean();
     }
 }

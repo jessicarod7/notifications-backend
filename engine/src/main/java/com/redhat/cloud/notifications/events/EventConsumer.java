@@ -101,6 +101,9 @@ public class EventConsumer {
     @Inject
     SeverityTransformer severityTransformer;
 
+    @Inject
+    ValkeyService valkeyService;
+
     ConsoleCloudEventParser cloudEventParser = new ConsoleCloudEventParser();
 
     private Counter rejectedCounter;
@@ -262,7 +265,21 @@ public class EventConsumer {
              * Before we persist the event into the DB and process it, we need to check whether the event is
              * a duplicate using the custom event deduplication logic tenants might have implemented.
              */
-            if (!eventDeduplicator.isNew(event)) {
+            boolean isNewEvent;
+
+            try {
+                isNewEvent = eventDeduplicator.isNew(event);
+            } catch (Exception e) {
+                // If Valkey deduplication is enabled, remove any keys that may have been created
+                if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
+                    Optional<String> dedupKey = eventDeduplicator.getEventDeduplicationConfig(event).getDeduplicationKey(event);
+                    dedupKey.ifPresent(key -> valkeyService.removeEventFromDeduplication(key));
+                }
+
+                throw e;
+            }
+
+            if (!isNewEvent) {
                 // The event is already known and should therefore be ignored.
                 Log.debug("Duplicated event ignored");
                 registry.counter(DUPLICATE_EVENT_COUNTER_NAME,
