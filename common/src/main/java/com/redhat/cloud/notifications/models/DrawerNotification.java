@@ -20,13 +20,25 @@ import static com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseS
 @JsonNaming(SnakeCaseStrategy.class)
 public class DrawerNotification extends CreationTimestamped {
 
-    public static final Map<String, String> SORT_FIELDS = Map.of(
-        "bundle", "dn.event.bundleDisplayName",
-        "application", "dn.event.applicationDisplayName",
-        "event", "dn.event.eventTypeDisplayName",
-        "created", "dn.created",
-        "read", "dn.read"
+    private static final Map<String, String> SORT_FIELDS_NORMALIZED = Map.of(
+            "bundle", "bundle.displayName",
+            "application", "app.displayName",
+            "event", "et.displayName",
+            "created", "dn.created",
+            "read", "dn.read"
     );
+
+    private static final Map<String, String> SORT_FIELDS_DENORMALIZED = Map.of(
+            "bundle", "dn.event.bundleDisplayName",
+            "application", "dn.event.applicationDisplayName",
+            "event", "dn.event.eventTypeDisplayName",
+            "created", "dn.created",
+            "read", "dn.read"
+    );
+
+    public static Map<String, String> getSortFields(boolean useNormalized) {
+        return useNormalized ? SORT_FIELDS_NORMALIZED : SORT_FIELDS_DENORMALIZED;
+    }
 
     @EmbeddedId
     private DrawerNotificationId id;

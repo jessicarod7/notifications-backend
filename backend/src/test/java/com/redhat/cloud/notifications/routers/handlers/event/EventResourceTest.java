@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.project_kessel.api.inventory.v1beta2.Allowed;
@@ -159,10 +160,11 @@ public class EventResourceTest extends DbIsolatedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldNotBeAllowedTogetEventLogsWhenUserHasNotificationsAccessRightsOnly(boolean kesselEnabled) {
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void shouldNotBeAllowedToGetEventLogsWhenUserHasNotificationsAccessRightsOnly(boolean kesselEnabled, boolean useNormalizedQueries) {
 
         when(backendConfig.isKesselEnabled(anyString())).thenReturn(kesselEnabled);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         if (kesselEnabled) {
             mockKesselPermission(DEFAULT_ORG_ID, "non-default-user", EVENTS_VIEW, ALLOWED_FALSE);
         }
@@ -176,10 +178,11 @@ public class EventResourceTest extends DbIsolatedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testAllQueryParams(boolean kesselEnabled) {
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void testAllQueryParams(boolean kesselEnabled, boolean useNormalizedQueries) {
 
         when(backendConfig.isKesselEnabled(anyString())).thenReturn(kesselEnabled);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         if (kesselEnabled) {
             mockDefaultKesselPermission(EVENTS_VIEW, ALLOWED_TRUE);
             when(workspaceUtils.getDefaultWorkspaceId(OTHER_ORG_ID)).thenReturn(UUID.randomUUID());
@@ -696,10 +699,11 @@ public class EventResourceTest extends DbIsolatedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testInsufficientPrivileges(boolean kesselEnabled) {
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void testInsufficientPrivileges(boolean kesselEnabled, boolean useNormalizedQueries) {
 
         when(backendConfig.isKesselEnabled(anyString())).thenReturn(kesselEnabled);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         if (kesselEnabled) {
             mockKesselPermission(DEFAULT_ORG_ID, DEFAULT_USER + "no-access", EVENTS_VIEW, ALLOWED_FALSE);
         }
@@ -713,10 +717,11 @@ public class EventResourceTest extends DbIsolatedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testInvalidSortBy(boolean kesselEnabled) {
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void testInvalidSortBy(boolean kesselEnabled, boolean useNormalizedQueries) {
 
         when(backendConfig.isKesselEnabled(anyString())).thenReturn(kesselEnabled);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         if (kesselEnabled) {
             mockDefaultKesselPermission(EVENTS_VIEW, ALLOWED_TRUE);
         }
@@ -733,10 +738,11 @@ public class EventResourceTest extends DbIsolatedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void testInvalidLimit(boolean kesselEnabled) {
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void testInvalidLimit(boolean kesselEnabled, boolean useNormalizedQueries) {
 
         when(backendConfig.isKesselEnabled(anyString())).thenReturn(kesselEnabled);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         if (kesselEnabled) {
             mockDefaultKesselPermission(EVENTS_VIEW, ALLOWED_TRUE);
         }
@@ -760,10 +766,11 @@ public class EventResourceTest extends DbIsolatedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    void shouldBeAllowedToGetEventLogs(boolean kesselEnabled) {
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void shouldBeAllowedToGetEventLogs(boolean kesselEnabled, boolean useNormalizedQueries) {
 
         when(backendConfig.isKesselEnabled(anyString())).thenReturn(kesselEnabled);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         if (kesselEnabled) {
             mockDefaultKesselPermission(EVENTS_VIEW, ALLOWED_TRUE);
         }
@@ -1017,9 +1024,11 @@ public class EventResourceTest extends DbIsolatedTest {
         }
     }
 
-    @Test
-    void testEventsWithKesselCriterion() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testEventsWithKesselCriterion(boolean useNormalizedQueries) {
         when(backendConfig.isKesselChecksOnEventLogEnabled(anyString())).thenReturn(true);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
 
         Header defaultIdentityHeader = mockRbac(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, DEFAULT_USER, FULL_ACCESS);
 
@@ -1116,6 +1125,116 @@ public class EventResourceTest extends DbIsolatedTest {
         assertLinks(page.getLinks(), "first", "last");
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testEventsWithKesselCriterionAndBundleAppFilters(boolean useNormalizedQueries) {
+        when(backendConfig.isKesselChecksOnEventLogEnabled(anyString())).thenReturn(true);
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
+
+        Header defaultIdentityHeader = mockRbac(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, DEFAULT_USER, FULL_ACCESS);
+
+        mockDefaultKesselPermission(EVENTS_VIEW, ALLOWED_TRUE);
+
+        Bundle bundle1 = resourceHelpers.createBundle("bundle-filter-1", "Bundle Filter 1");
+        Bundle bundle2 = resourceHelpers.createBundle("bundle-filter-2", "Bundle Filter 2");
+        Application app1 = resourceHelpers.createApplication(bundle1.getId(), "app-filter-1", "Application Filter 1");
+        Application app2 = resourceHelpers.createApplication(bundle2.getId(), "app-filter-2", "Application Filter 2");
+        EventType eventType1 = resourceHelpers.createEventType(app1.getId(), "event-type-filter-1", "Event type filter 1", "Event type filter 1");
+        EventType eventType2 = resourceHelpers.createEventType(app2.getId(), "event-type-filter-2", "Event type filter 2", "Event type filter 2");
+
+        String kesselPayload1 = buildPayloadWithAuthorizationCriterion(DEFAULT_ORG_ID, bundle1.getName(), app1.getName(), eventType1.getName());
+        String kesselPayload2 = buildPayloadWithAuthorizationCriterion(DEFAULT_ORG_ID, bundle2.getName(), app2.getName(), eventType2.getName());
+
+        Event event1Bundle1 = createEvent(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, bundle1, app1, eventType1, NOW.minusDays(1L), kesselPayload1, true, UUID.randomUUID());
+        Event event2Bundle1 = createEvent(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, bundle1, app1, eventType1, NOW.minusDays(2L), kesselPayload1, true, UUID.randomUUID());
+        Event event3Bundle2 = createEvent(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, bundle2, app2, eventType2, NOW.minusDays(3L), kesselPayload2, true, UUID.randomUUID());
+        Event event4Bundle2 = createEvent(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, bundle2, app2, eventType2, NOW.minusDays(4L), kesselPayload2, true, UUID.randomUUID());
+        Event eventNoAuth = createEvent(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, bundle1, app1, eventType1, NOW.minusDays(5L));
+
+        Endpoint endpoint1 = resourceHelpers.createEndpoint(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, WEBHOOK);
+        NotificationHistory history1 = resourceHelpers.createNotificationHistory(event1Bundle1, endpoint1, NotificationStatus.SUCCESS);
+        NotificationHistory history2 = resourceHelpers.createNotificationHistory(event2Bundle1, endpoint1, NotificationStatus.SUCCESS);
+        NotificationHistory history3 = resourceHelpers.createNotificationHistory(event3Bundle2, endpoint1, NotificationStatus.SUCCESS);
+        NotificationHistory history4 = resourceHelpers.createNotificationHistory(event4Bundle2, endpoint1, NotificationStatus.SUCCESS);
+        NotificationHistory historyNoAuth = resourceHelpers.createNotificationHistory(eventNoAuth, endpoint1, NotificationStatus.SUCCESS);
+
+        endpointRepository.deleteEndpoint(DEFAULT_ORG_ID, endpoint1.getId());
+
+        CheckResponse kesselInventoryCheckResponse = CheckResponse.newBuilder().setAllowed(ALLOWED_TRUE).build();
+        when(kesselCheckClient.check(any(CheckRequest.class))).thenReturn(kesselInventoryCheckResponse);
+
+        /*
+         * Test #1
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: Filter by bundle1
+         * Expected response: All events from bundle1 (events with auth criterion that pass Kessel + events without auth criterion)
+         */
+        Page<EventLogEntry> page = getEventLogPage(defaultIdentityHeader, Set.of(bundle1.getId()), null, null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(3, page.getMeta().getCount());
+        assertEquals(3, page.getData().size());
+        assertSameEvent(page.getData().get(0), event1Bundle1, history1);
+        assertSameEvent(page.getData().get(1), event2Bundle1, history2);
+        assertSameEvent(page.getData().get(2), eventNoAuth, historyNoAuth);
+
+        /*
+         * Test #2
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: Filter by bundle2
+         */
+        page = getEventLogPage(defaultIdentityHeader, Set.of(bundle2.getId()), null, null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(2, page.getMeta().getCount());
+        assertEquals(2, page.getData().size());
+        assertSameEvent(page.getData().get(0), event3Bundle2, history3);
+        assertSameEvent(page.getData().get(1), event4Bundle2, history4);
+
+        /*
+         * Test #3
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: Filter by app2
+         */
+        page = getEventLogPage(defaultIdentityHeader, null, Set.of(app2.getId()), null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(2, page.getMeta().getCount());
+        assertEquals(2, page.getData().size());
+        assertSameEvent(page.getData().get(0), event3Bundle2, history3);
+        assertSameEvent(page.getData().get(1), event4Bundle2, history4);
+
+        /*
+         * Test #4
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: Filter by bundle1 and app2
+         */
+        page = getEventLogPage(defaultIdentityHeader, Set.of(bundle1.getId()), Set.of(app2.getId()), null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(5, page.getMeta().getCount());
+        assertEquals(5, page.getData().size());
+
+        /*
+         * Test #5
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: Filter by both bundles
+         */
+        page = getEventLogPage(defaultIdentityHeader, Set.of(bundle1.getId(), bundle2.getId()), null, null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(5, page.getMeta().getCount());
+        assertEquals(5, page.getData().size());
+
+        /*
+         * Test #6
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: No filter
+         */
+        page = getEventLogPage(defaultIdentityHeader, null, null, null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(5, page.getMeta().getCount());
+        assertEquals(5, page.getData().size());
+
+        /*
+         * Test #7
+         * Account: DEFAULT_ACCOUNT_ID
+         * Request: Unknown bundle
+         */
+        page = getEventLogPage(defaultIdentityHeader, Set.of(UUID.randomUUID()), null, null, null, null, null, null, null, null, null, null, false, true);
+        assertEquals(0, page.getMeta().getCount());
+        assertTrue(page.getData().isEmpty());
+    }
+
     private void mockKesselDenyAll() {
         when(kesselCheckClient
             .check(any(CheckRequest.class)))
@@ -1135,8 +1254,10 @@ public class EventResourceTest extends DbIsolatedTest {
             .thenReturn(kesselTestHelper.buildCheckResponse(allowed));
     }
 
-    @Test
-    void testEventLogEntriesIncludeSeverity() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testEventLogEntriesIncludeSeverity(boolean useNormalizedQueries) {
+        when(backendConfig.isNormalizedQueriesEnabled(anyString())).thenReturn(useNormalizedQueries);
         Header defaultIdentityHeader = mockRbac(DEFAULT_ACCOUNT_ID, DEFAULT_ORG_ID, DEFAULT_USER, FULL_ACCESS);
 
         Bundle bundle = resourceHelpers.createBundle("test-bundle", "Test Bundle");
