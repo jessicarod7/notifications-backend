@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotNull;
 @RegisterForReflection
 public class SplunkNotification extends NotificationToConnector {
 
-    @NotNull
     @JsonProperty("account_id")
     public String accountId;
 
