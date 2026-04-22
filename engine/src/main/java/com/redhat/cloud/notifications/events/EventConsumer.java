@@ -273,7 +273,7 @@ public class EventConsumer {
                 // If Valkey deduplication is enabled, remove any keys that may have been created
                 if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
                     Optional<String> dedupKey = eventDeduplicator.getEventDeduplicationConfig(event).getDeduplicationKey(event);
-                    dedupKey.ifPresent(key -> valkeyService.removeEventFromDeduplication(key));
+                    dedupKey.ifPresent(key -> valkeyService.removeEventFromDeduplication(event.getEventType().getId(), key));
                 }
 
                 throw e;

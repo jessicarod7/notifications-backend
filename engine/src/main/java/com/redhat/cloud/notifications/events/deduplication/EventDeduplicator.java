@@ -58,6 +58,7 @@ public class EventDeduplicator {
         LocalDateTime deleteAfter = eventDeduplicationConfig.getDeleteAfter(event);
 
         if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
+            // RHCLOUD-35790: remove once Valkey deduplication is validated
             boolean isNewEvent = postgresEventDeduplication(eventTypeId, deduplicationKey, deleteAfter);
             boolean valkeyIsNewEvent = valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(),
                     deleteAfter, event.getId());

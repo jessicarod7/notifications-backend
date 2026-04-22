@@ -1,5 +1,7 @@
 package com.redhat.cloud.notifications.events;
 
+import com.redhat.cloud.notifications.TestLifecycleManager;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
+@QuarkusTestResource(TestLifecycleManager.class)
 class ValkeyServiceTest {
     @Inject
     ValkeyService valkeyService;
