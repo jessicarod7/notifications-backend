@@ -94,6 +94,8 @@
         <!-- Point the Sonar Qube Plugin always to the same JaCoCo report to aggregate sub-modules reports-->
         <sonar.coverage.jacoco.xmlReportPaths>target/jacoco-report/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 
+        <jandex-maven-plugin.version>3.5.3</jandex-maven-plugin.version>
+
     </properties>
 
     <dependencyManagement>
