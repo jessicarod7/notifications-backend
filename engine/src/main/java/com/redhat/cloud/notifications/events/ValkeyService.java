@@ -78,10 +78,9 @@ public class ValkeyService {
      * Verifies that the event has not been previously processed. The format of saved keys is
      * {@code engine:event-deduplication:<event_type>:<deduplication_key>}.
      *
-     * @param eventId only used for debugging
      * @see com.redhat.cloud.notifications.events.deduplication.EventDeduplicator EventDeduplicator
      */
-    public boolean isNewEvent(UUID eventTypeId, String deduplicationKey, LocalDateTime deleteAfter, UUID eventId) {
+    public boolean isNewEvent(UUID eventTypeId, String deduplicationKey, LocalDateTime deleteAfter) {
         String key = formatDeduplicationKey(eventTypeId, deduplicationKey);
         String deleteAfterIso = deleteAfter.format(DateTimeFormatter.ISO_DATE_TIME);
         boolean isNew;
@@ -102,8 +101,8 @@ public class ValkeyService {
             } catch (Exception ignored) {
                 // Invalid response could not be mapped to string. Assume event is new
                 // dedup key may include private information, so other fields are used
-                Log.warnf("unable to check for duplicate event in Valkey [event_type_id=%s, event_id=%s, delete_after=%s]",
-                        eventTypeId, eventId, deleteAfterIso);
+                Log.warnf("unable to check for duplicate event in Valkey [event_type_id=%s, delete_after=%s, deduplication_key=%s]",
+                        eventTypeId, deleteAfterIso, deduplicationKey);
                 isNew = true;
             }
         }
@@ -111,12 +110,14 @@ public class ValkeyService {
         return isNew;
     }
 
-    /** This method should only be called to remove a key that may have been inserted by {@link #isNewEvent(UUID, String, LocalDateTime, UUID)} */
-    public boolean removeEventFromDeduplication(UUID eventTypeId, String key) {
+    /** This method should only be called to remove a key that may have been inserted by {@link #isNewEvent(UUID, String, LocalDateTime)} */
+    public boolean removeEventFromDeduplication(UUID eventTypeId, String deduplicationKey) {
         try {
-            return valkey.delAndAwait(List.of(formatDeduplicationKey(eventTypeId, key))).toBoolean();
+            return valkey.delAndAwait(List.of(formatDeduplicationKey(eventTypeId, deduplicationKey))).toBoolean();
         } catch (Exception ignored) {
-            Log.warnf("Failed to remove duplicate event from Valkey during rollback [event_type_id=%s]");
+            Log.warnf(
+                    "Failed to remove duplicate event from Valkey during rollback [event_type_id=%s, deduplication_key=%s]",
+                    eventTypeId, deduplicationKey);
             return false;
         }
     }

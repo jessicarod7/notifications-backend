@@ -173,6 +173,8 @@ public class EventConsumer {
         Timer.Sample consumedTimer = Timer.start(registry);
         String payload = message.getPayload();
         Map<String, String> tags = new HashMap<>();
+        Event event = null;
+
         // The two following variables have to be final or effectively final. That why their type is String[] instead of String.
         /*
          * Step 1
@@ -258,27 +260,14 @@ public class EventConsumer {
              * The EventType was found. It's time to create an Event from the current message.
              */
             Optional<String> sourceEnvironmentHeader = kafkaHeaders.get(SOURCE_ENVIRONMENT_HEADER);
-            Event event = new Event(eventType, payload, eventWrapperToProcess, sourceEnvironmentHeader, messageId);
+            event = new Event(eventType, payload, eventWrapperToProcess, sourceEnvironmentHeader, messageId);
 
             /*
              * Step 5
              * Before we persist the event into the DB and process it, we need to check whether the event is
              * a duplicate using the custom event deduplication logic tenants might have implemented.
              */
-            boolean isNewEvent;
-
-            try {
-                isNewEvent = eventDeduplicator.isNew(event);
-            } catch (Exception e) {
-                // If Valkey deduplication is enabled, remove any keys that may have been created
-                if (engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
-                    Optional<String> dedupKey = eventDeduplicator.getEventDeduplicationConfig(event).getDeduplicationKey(event);
-                    dedupKey.ifPresent(key -> valkeyService.removeEventFromDeduplication(event.getEventType().getId(), key));
-                }
-
-                throw e;
-            }
-
+            boolean isNewEvent = eventDeduplicator.isNew(event);
             if (!isNewEvent) {
                 // The event is already known and should therefore be ignored.
                 Log.debug("Duplicated event ignored");
@@ -315,10 +304,16 @@ public class EventConsumer {
         } catch (Exception e) {
             /*
              * An exception was thrown at some point during the Kafka message processing,
-             * it is logged and added to the exception counter metric.
+             * it is logged and added to the exception counter metric. Any deduplication
+             * events added in Valkey will be rolled back.
              */
             processingExceptionCounter.increment();
             Log.infof(e, "Could not process the payload: %s", payload);
+            if (event != null && engineConfig.isInMemoryDbEnabled() && engineConfig.isValkeyEventDeduplicatorEnabled()) {
+                Event finalEvent = event;
+                Optional<String> dedupKey = eventDeduplicator.getEventDeduplicationConfig(event).getDeduplicationKey(event);
+                dedupKey.ifPresent(key -> valkeyService.removeEventFromDeduplication(finalEvent.getEventType().getId(), key));
+            }
         } finally {
             consumedTimer.stop(registry.timer(
                     CONSUMED_TIMER_NAME,

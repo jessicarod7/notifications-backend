@@ -61,11 +61,11 @@ public class EventDeduplicator {
             // RHCLOUD-35790: remove once Valkey deduplication is validated
             boolean isNewEvent = postgresEventDeduplication(eventTypeId, deduplicationKey, deleteAfter);
             boolean valkeyIsNewEvent = valkeyService.isNewEvent(eventTypeId, deduplicationKey.get(),
-                    deleteAfter, event.getId());
+                    deleteAfter);
             if (valkeyIsNewEvent != isNewEvent) {
                 Log.warnf(
-                        "Valkey event deduplication (isNewEvent=%s) does not align with Postgres result (isNewEvent=%s) [event_type_id=%s, event_id=%s]",
-                        valkeyIsNewEvent, isNewEvent, eventTypeId, event.getId());
+                        "Valkey event deduplication (isNewEvent=%s) does not align with Postgres result (isNewEvent=%s) [event_type_id=%s, deduplication_key=%s]",
+                        valkeyIsNewEvent, isNewEvent, eventTypeId, deduplicationKey.get());
             }
 
             return isNewEvent;
