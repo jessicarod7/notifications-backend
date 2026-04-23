@@ -22,7 +22,7 @@ class TestPoliciesTemplate {
     void testRenderedTemplate() {
         Action action = TestHelpers.createPoliciesAction("", "", "", "FooMachine");
         String result = renderTemplate(EVENT_TYPE_NAME, action);
-        assertEquals("**FooMachine** triggered 2 policies.", result);
+        assertEquals("**[FooMachine](https://localhost/insights/inventory/host-01)** triggered 2 policies.", result);
     }
 
     String renderTemplate(final String eventType, final Action action) {
