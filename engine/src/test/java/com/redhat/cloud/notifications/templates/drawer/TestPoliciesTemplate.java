@@ -29,6 +29,6 @@ class TestPoliciesTemplate extends DrawerTemplatesHelper {
     void testRenderedTemplateNewAdvisory() {
         Action action = TestHelpers.createPoliciesAction("", "", "", "FooMachine");
         String result = generateDrawerTemplate(EVENT_TYPE_NAME, action);
-        assertEquals("**[FooMachine](https://localhost/insights/inventory/host-01)** triggered 2 policies.", result);
+        assertEquals("**[FooMachine](https://localhost/insights/inventory/host-01?from=notifications&integration=drawer)** triggered 2 policies.", result);
     }
 }
