@@ -3,13 +3,17 @@ package com.redhat.cloud.notifications.models;
 import jakarta.persistence.Embeddable;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
-
+/**
+ * Composite primary key for DrawerReadStatus.
+ * Represents a unique combination of (organization, user, event).
+ */
 @Embeddable
-public class DrawerNotificationId implements Serializable {
+public class DrawerReadStatusId implements Serializable {
 
     @NotNull
     @Size(max = 50)
@@ -22,7 +26,21 @@ public class DrawerNotificationId implements Serializable {
     @NotNull
     private UUID eventId;
 
-    public DrawerNotificationId() {
+    public DrawerReadStatusId() {
+    }
+
+    public DrawerReadStatusId(String orgId, String userId, UUID eventId) {
+        this.orgId = orgId;
+        this.userId = userId;
+        this.eventId = eventId;
+    }
+
+    public String getOrgId() {
+        return orgId;
+    }
+
+    public void setOrgId(String orgId) {
+        this.orgId = orgId;
     }
 
     public String getUserId() {
@@ -33,12 +51,8 @@ public class DrawerNotificationId implements Serializable {
         this.userId = userId;
     }
 
-    public String getOrgId() {
-        return orgId;
-    }
-
-    public void setOrgId(String orgId) {
-        this.orgId = orgId;
+    public UUID getEventId() {
+        return eventId;
     }
 
     public void setEventId(UUID eventId) {
@@ -53,7 +67,7 @@ public class DrawerNotificationId implements Serializable {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        DrawerNotificationId that = (DrawerNotificationId) o;
+        DrawerReadStatusId that = (DrawerReadStatusId) o;
         return orgId.equals(that.orgId) && userId.equals(that.userId) && eventId.equals(that.eventId);
     }
 

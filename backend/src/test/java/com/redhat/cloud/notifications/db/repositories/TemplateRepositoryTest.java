@@ -101,7 +101,7 @@ public class TemplateRepositoryTest extends DbIsolatedTest {
 
         // bundle / app-1 / event-type-1
         assertEquals(app1Instant, templateRepository.isSubscriptionTypeSupported(eventType1.getId(), INSTANT, DEFAULT_ORG_ID));
-        assertEquals(false, templateRepository.isSubscriptionTypeSupported(eventType2.getId(), INSTANT, DEFAULT_ORG_ID));
+        assertFalse(templateRepository.isSubscriptionTypeSupported(eventType2.getId(), INSTANT, DEFAULT_ORG_ID));
         assertEquals(app1Daily, templateRepository.isSubscriptionTypeSupported(eventType1.getId(), DAILY, DEFAULT_ORG_ID));
         assertEquals(app1Daily, templateRepository.isSubscriptionTypeSupported(eventType2.getId(), DAILY, DEFAULT_ORG_ID));
 
@@ -124,7 +124,7 @@ public class TemplateRepositoryTest extends DbIsolatedTest {
         when(backendConfig.isDefaultTemplateEnabled()).thenReturn(false);
 
         // Create drawer template
-        resourceHelpers.createDrawerTemplate(bundle.getName(), app1.getName(), eventType1.getName());
+        resourceHelpers.createDrawerTemplate("Drawer template subscription support", bundle.getName(), app1.getName(), eventType1.getName());
 
         // Verify drawer supported for org-with-drawer-enabled
         assertTrue(templateRepository.isSubscriptionTypeSupported(

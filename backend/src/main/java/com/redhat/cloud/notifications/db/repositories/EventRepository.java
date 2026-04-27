@@ -17,6 +17,7 @@ import jakarta.transaction.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,6 +69,76 @@ public class EventRepository {
                 event.setEventTypeDisplayName(event.getEventType().getDisplayName());
             }
         }
+
+        List<EventAuthorizationCriterion> eventAuthorizationCriterion = new ArrayList<>();
+        for (Event event : eventsWithAuthorizationCriterion) {
+            eventAuthorizationCriterion.add(new EventAuthorizationCriterion(event.getId(), recipientsAuthorizationCriterionExtractor.extract(event)));
+        }
+        return eventAuthorizationCriterion;
+    }
+
+     /**
+     * Get drawer events that have authorization criteria.
+     * Filters by event type IDs (from subscriptions) and renderedDrawerNotification.
+     *
+     * @param orgId Organization ID
+     * @param eventTypeIds Set of event type UUIDs to filter by (from subscription query)
+     * @param startDate Start date filter (optional)
+     * @param endDate End date filter (optional)
+     * @return List of events with their authorization criteria
+     */
+    public List<EventAuthorizationCriterion> getDrawerEventsWithCriterion(String orgId, boolean useNormalized, Set<UUID> eventTypeIds,
+                                                                           LocalDateTime startDate, LocalDateTime endDate) {
+        boolean eventTypeIdsNotEmpty = eventTypeIds != null && !eventTypeIds.isEmpty();
+
+        String hql = "FROM Event e ";
+
+        // Add selective JOINs for normalized approach
+        if (useNormalized) {
+            hql += "JOIN FETCH e.eventType et JOIN FETCH et.application app JOIN FETCH app.bundle bundle ";
+        }
+
+        hql += "WHERE e.orgId = :orgId";
+
+        // Filter by renderedDrawerNotification (drawer-specific)
+        hql += " AND e.renderedDrawerNotification IS NOT NULL";
+
+        // Filter by event type IDs (from subscription query)
+        if (eventTypeIdsNotEmpty) {
+            if (useNormalized) {
+                hql += " AND et.id IN (:eventTypeIds)";
+            } else {
+                hql += " AND e.eventType.id IN (:eventTypeIds)";
+            }
+        }
+
+        // Date range filtering
+        if (startDate != null && endDate != null) {
+            hql += " AND e.created BETWEEN :startDate AND :endDate";
+        } else if (startDate != null) {
+            hql += " AND e.created >= :startDate";
+        } else if (endDate != null) {
+            hql += " AND e.created <= :endDate";
+        }
+
+        // Drawer only cares about events with auth criterion
+        hql += " AND e.hasAuthorizationCriterion is true";
+
+        TypedQuery<Event> typedQuery = entityManager.createQuery(hql, Event.class);
+        typedQuery.setParameter("orgId", orgId);
+
+        if (eventTypeIdsNotEmpty) {
+            typedQuery.setParameter("eventTypeIds", eventTypeIds);
+        }
+
+        if (startDate != null) {
+            typedQuery.setParameter("startDate", Timestamp.valueOf(startDate.toLocalDate().atStartOfDay()));
+        }
+        if (endDate != null) {
+            typedQuery.setParameter("endDate", Timestamp.valueOf(endDate.toLocalDate().atTime(LocalTime.MAX)));
+        }
+
+        List<Event> eventsWithAuthorizationCriterion = typedQuery.getResultList();
 
         List<EventAuthorizationCriterion> eventAuthorizationCriterion = new ArrayList<>();
         for (Event event : eventsWithAuthorizationCriterion) {
@@ -263,6 +334,7 @@ public class EventRepository {
                 hql += " AND LOWER(e.eventTypeDisplayName) LIKE :eventTypeDisplayName";
             }
         }
+
         if (startDate != null && endDate != null) {
             hql += " AND e.created BETWEEN :startDate AND :endDate";
         } else if (startDate != null) {
